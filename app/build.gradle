@@ -1,0 +1,82 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def tagName = '1.0.0'
+
+android {
+    namespace 'com.khpalgps.splsrec'
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.khpalgps.splsrec"
+        minSdk 27
+        targetSdk 34
+        versionCode 100
+        versionName tagName
+        buildConfigField("String", "TAG_NAME", "\"${tagName}\"")
+    }
+    splits {
+        abi {
+            enable true
+            reset()
+            include "arm64-v8a"
+            universalApk false
+        }
+    }
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    signingConfigs {
+        release {
+            def keystoreFile = System.getenv("KEYSTORE_FILE")
+            if (keystoreFile != null) {
+                storeFile file(keystoreFile)
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+}
+
+dependencies {
+    // key-free map (maplibre, BSD 2-clause) and location (microg, Apache 2.0)
+    implementation 'org.microg.gms:play-services-location:0.3.6.244735'
+    implementation 'org.maplibre.gl:android-sdk:11.8.2'
+
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0-alpha01'
+    implementation 'androidx.activity:activity-ktx:1.6.1'
+    implementation 'androidx.fragment:fragment-ktx:1.5.7'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.0-alpha05'
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.6.0-alpha04"
+    implementation 'com.google.android.material:material:1.12.0'
+}

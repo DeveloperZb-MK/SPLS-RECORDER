@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">KHPAL SPLS Recorder</string>
+    <string name="search">Search a place</string>
+    <string name="dialog_set">Set</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="zoom_in_desc">Zoom in</string>
+    <string name="zoom_out_desc">Zoom out</string>
+    <string name="my_location_desc">Show my location</string>
+    <string name="map_type_desc">Change the map type</string>
+    <string name="spls_desc">SPLS</string>
+    <string name="no_internet">No internet connection</string>
+</resources>
