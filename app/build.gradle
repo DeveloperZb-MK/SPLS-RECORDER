@@ -6,10 +6,10 @@ plugins {
 def tagName = '1.0.0'
 
 android {
-    namespace 'com.khpalgps.splsrec'
+    namespace 'com.splsrecorder.zb'
     compileSdk 34
     defaultConfig {
-        applicationId "com.khpalgps.splsrec"
+        applicationId "com.splsrecorder.zb"
         minSdk 27
         targetSdk 34
         versionCode 100

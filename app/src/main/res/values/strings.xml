@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">KHPAL SPLS Recorder</string>
+    <string name="app_name">SPLS Recorder</string>
     <string name="search">Search a place</string>
     <string name="dialog_set">Set</string>
     <string name="dialog_cancel">Cancel</string>

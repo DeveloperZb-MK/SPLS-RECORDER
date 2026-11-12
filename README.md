@@ -1,4 +1,4 @@
-# KHPAL SPLS Recorder
+# SPLS Recorder
 
 A small Android app that does one thing: it records how the three location providers
 (Network, GPS and Fused) behave on your phone, place by place, and lets you import and
@@ -43,7 +43,7 @@ Older 11-column files (without bearing, bearing_acc, jitter_m and drift_m) still
 ## Build on a phone with GitHub
 
 1. Make a new repository and upload the project zip on its main page.
-2. Open the Actions tab, run "Build KHPAL SPLS Recorder" (or it starts by itself).
+2. Open the Actions tab, run "Build SPLS Recorder" (or it starts by itself).
 3. Download the APK from the finished run (Artifacts).
 
 Without keystore secrets the APK is debug-signed and installs on any phone. To get a signed release APK,
