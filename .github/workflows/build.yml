@@ -1,4 +1,4 @@
-name: Build KHPAL SPLS Recorder
+name: Build SPLS Recorder
 
 on:
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add -A -f
-            git commit -m "Add KHPAL SPLS Recorder project files"
+            git commit -m "Add SPLS Recorder project files"
             git push
           fi
 
@@ -62,7 +62,20 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add -A -f
-            git commit -m "Apply KHPAL SPLS Recorder update"
+            git commit -m "Apply SPLS Recorder update"
+            git push
+          fi
+
+      # The package was renamed (com.khpalgps.splsrec -> com.splsrecorder.zb).
+      # If the old source folder is still in the repository, remove it so only the new one is built.
+      - name: Remove old package folder (after the package rename)
+        run: |
+          if [ -d app/src/main/java/com/splsrecorder ] && [ -d app/src/main/java/com/khpalgps ]; then
+            git rm -rq app/src/main/java/com/khpalgps
+            rm -rf app/src/main/java/com/khpalgps
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "Remove old package folder after the package rename"
             git push
           fi
 
@@ -100,14 +113,14 @@ jobs:
           VER=$(grep "def tagName" app/build.gradle | sed -E "s/.*'([^']+)'.*/\1/")
           for f in $(find app/build/outputs/apk -name '*.apk'); do
             kind=$(echo "$f" | grep -o -E 'release|debug' | head -n1)
-            cp "$f" "out/KHPAL-SPLS-Recorder-${VER}-${kind}.apk"
+            cp "$f" "out/SPLS-Recorder-${VER}-${kind}.apk"
           done
           ls -la out
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: KHPAL-SPLS-Recorder-apk
+          name: SPLS-Recorder-apk
           path: out/*.apk
 
       - name: Publish to GitHub Releases
@@ -120,6 +133,6 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" out/*.apk --clobber
           else
-            gh release create "$TAG" out/*.apk --title "KHPAL SPLS Recorder ${VER}" \
-              --notes "KHPAL SPLS Recorder ${VER}. Records how the Network, GPS and Fused location providers behave and exports the records as CSV."
+            gh release create "$TAG" out/*.apk --title "SPLS Recorder ${VER}" \
+              --notes "SPLS Recorder ${VER}. Records how the Network, GPS and Fused location providers behave and exports the records as CSV."
           fi
