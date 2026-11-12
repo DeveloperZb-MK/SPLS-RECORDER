@@ -1,0 +1,125 @@
+name: Build KHPAL SPLS Recorder
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Also publish the APK to GitHub Releases'
+        type: boolean
+        default: false
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Phone-friendly first upload: put the project .zip on the main page of the repository.
+      # It is unpacked into the repository once, then the zip is deleted.
+      - name: Unpack project zip (first run only)
+        run: |
+          if [ ! -f gradlew ]; then
+            ZIP=$(find . -name '*.zip' -not -path './.git/*' | head -n1)
+            if [ -z "$ZIP" ]; then
+              echo "ERROR: no project files and no .zip found. Upload the project zip to the repository first."
+              exit 1
+            fi
+            echo "Using $ZIP"
+            mkdir -p /tmp/unz
+            unzip -q -o "$ZIP" -d /tmp/unz
+            SRC=$(dirname "$(find /tmp/unz -maxdepth 3 -name gradlew | head -n1)")
+            rsync -a --exclude='.github' "$SRC"/ ./
+            rm -f "$ZIP"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A -f
+            git commit -m "Add KHPAL SPLS Recorder project files"
+            git push
+          fi
+
+      # Phone-friendly update: upload splsrec-update.zip to the main page of the repository.
+      # It is unpacked over the project once, then the zip is deleted. Without that file this step does nothing.
+      - name: Apply update zip (only when splsrec-update.zip is uploaded)
+        run: |
+          ZIP=$(find . -name 'splsrec-update.zip' -not -path './.git/*' | head -n1)
+          if [ -n "$ZIP" ]; then
+            echo "Using $ZIP"
+            rm -rf /tmp/upd && mkdir -p /tmp/upd
+            unzip -q -o "$ZIP" -d /tmp/upd
+            SRC=$(dirname "$(find /tmp/upd -maxdepth 3 -name gradlew | head -n1)")
+            rsync -a --exclude='.github' "$SRC"/ ./
+            rm -f "$ZIP"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A -f
+            git commit -m "Apply KHPAL SPLS Recorder update"
+            git push
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Prepare
+        run: chmod +x ./gradlew
+
+      # With the keystore secrets the APK is a signed release build.
+      # Without them a debug-signed APK is built, which installs fine on any phone.
+      - name: Decode Keystore
+        if: env.HAS_KEYSTORE == 'true'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          echo "KEYSTORE_FILE=${{ github.workspace }}/release.keystore" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build release APK (signed)
+        if: env.HAS_KEYSTORE == 'true'
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Build debug APK (no keystore secrets set)
+        if: env.HAS_KEYSTORE != 'true'
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Collect APK
+        run: |
+          mkdir -p out
+          VER=$(grep "def tagName" app/build.gradle | sed -E "s/.*'([^']+)'.*/\1/")
+          for f in $(find app/build/outputs/apk -name '*.apk'); do
+            kind=$(echo "$f" | grep -o -E 'release|debug' | head -n1)
+            cp "$f" "out/KHPAL-SPLS-Recorder-${VER}-${kind}.apk"
+          done
+          ls -la out
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: KHPAL-SPLS-Recorder-apk
+          path: out/*.apk
+
+      - name: Publish to GitHub Releases
+        if: ${{ inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep "def tagName" app/build.gradle | sed -E "s/.*'([^']+)'.*/\1/")
+          TAG="v${VER}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/*.apk --clobber
+          else
+            gh release create "$TAG" out/*.apk --title "KHPAL SPLS Recorder ${VER}" \
+              --notes "KHPAL SPLS Recorder ${VER}. Records how the Network, GPS and Fused location providers behave and exports the records as CSV."
+          fi
