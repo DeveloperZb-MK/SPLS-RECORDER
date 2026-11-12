@@ -48,4 +48,4 @@ To change the app later, upload `splsrec-update.zip` on the main page of the rep
 
 ## License
 
-Based on the SPLS code of KHPAL GPS, which is a fork of GPS Setter. See LICENSE and NOTICE.
+Based on the SPLS code of KHPAL GPS, It is a fork of Khpal GPS. It has limited features of KHPAL GPS. See LICENSE and NOTICE.
