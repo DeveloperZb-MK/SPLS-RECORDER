@@ -80,9 +80,59 @@ object SplsStore {
         rowsById[id]?.let { return it }
         val list = ArrayList<SplsRow>()
         val f = rowFile(ctx, id)
-        if (f.exists()) f.forEachLine { line -> parseLine(line)?.let { list.add(it) } }
+        var oldFormat = false
+        if (f.exists()) {
+            f.bufferedReader().useLines { lines ->
+                var first = true
+                for (line in lines) {
+                    if (first) {
+                        first = false
+                        if (line.startsWith("run_id")) {
+                            oldFormat = !line.contains("jitter_m")
+                            continue
+                        }
+                    }
+                    parseLine(line)?.let { list.add(it) }
+                }
+            }
+        }
+        if (oldFormat) fillOldMotion(list)
         rowsById[id] = list
         return list
+    }
+
+    /**
+     * Older CSV rows have no jitter/drift columns. Recreate those values using the same
+     * per-provider timing window used by the KHPAL import compatibility path.
+     */
+    private fun fillOldMotion(list: ArrayList<SplsRow>) {
+        for (provider in listOf("gps", "network", "fused")) {
+            val indices = list.indices.filter { list[it].provider == provider }.sortedBy { list[it].timeMs }
+            val window = ArrayList<SplsRow>()
+            var previous: SplsRow? = null
+            for (index in indices) {
+                val row = list[index]
+                val gap = if (previous != null) row.timeMs - previous.timeMs else Long.MAX_VALUE
+                if (previous == null || gap > 60_000L) window.clear()
+                val inStep = previous != null && gap in 2500L..6000L
+                var jitter: Double? = null
+                var drift: Double? = null
+                if (inStep) {
+                    jitter = SplsGeo.distanceM(previous!!.lat, previous.lon, row.lat, row.lon)
+                    if (window.size >= 3) {
+                        val meanLat = window.sumOf { it.lat } / window.size
+                        val meanLon = window.sumOf { it.lon } / window.size
+                        drift = SplsGeo.distanceM(meanLat, meanLon, row.lat, row.lon)
+                    }
+                }
+                if (jitter != null && row.jitter == null && row.drift == null) {
+                    list[index] = row.copy(jitter = jitter, drift = drift)
+                }
+                window.add(row)
+                while (window.size > 20) window.removeAt(0)
+                previous = row
+            }
+        }
     }
 
     private fun writeRows(ctx: Context, id: String, list: List<SplsRow>) {
@@ -246,11 +296,16 @@ object SplsStore {
         val rows = ArrayList<SplsRow>()
         val known = HashSet<String>()
         var skipped = 0
+        var oldFormat = false
         val input = ctx.contentResolver.openInputStream(uri) ?: throw java.io.IOException("Cannot open the file")
         input.bufferedReader().useLines { lines ->
             for (line in lines) {
-                if (line.isBlank() || line.startsWith("run_id")) continue
-                
+                if (line.isBlank()) continue
+                if (line.startsWith("run_id")) {
+                    oldFormat = !line.contains("jitter_m")
+                    continue
+                }
+
                 val r = parseLine(line)
                 if (r == null || !known.add(key(r))) {
                     skipped++
@@ -274,6 +329,7 @@ object SplsStore {
             }
         }
         if (rows.isEmpty()) throw java.io.IOException("No usable records in this file")
+        if (oldFormat) fillOldMotion(rows)
         val id = newId()
         writeRows(ctx, id, rows)
         rowsById[id] = rows
