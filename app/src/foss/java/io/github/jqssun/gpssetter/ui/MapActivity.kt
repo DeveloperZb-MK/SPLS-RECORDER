@@ -19,7 +19,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.R
 import io.github.jqssun.gpssetter.spls.SplsSession
 import io.github.jqssun.gpssetter.spls.SplsStore
 import io.github.jqssun.gpssetter.utils.ext.getAddress
