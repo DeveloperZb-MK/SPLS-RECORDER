@@ -338,7 +338,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
         }
         splsController.enable { ok ->
             if (ok) {
-                SplsFlow.begin(this, loc, { note("Saved. Recording starts when you are inside this area.") }, { note("Saved. Recording did not start yet.") })
+                SplsFlow.begin(this, loc, { note("Saved. Recording starts when you are inside this area.") }, { note("Saved. Recording did not start yet.") }, confirmReady = true)
             } else {
                 note("Saved. Recording did not start yet.")
             }
