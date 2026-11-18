@@ -294,35 +294,6 @@ class MapActivity: BaseMapActivity(), OnMapReadyCallback, MapLibreMap.OnMapClick
         }
         binding.toolbar.visibility = View.GONE
         binding.navView.visibility = View.GONE
-        binding.startButton.visibility = View.GONE
-        binding.stopButton.visibility = View.GONE
         binding.getlocation.setOnClickListener { getLastLocation() }
-
-        if (viewModel.isStarted) {
-            binding.startButton.visibility = View.GONE
-            binding.stopButton.visibility = View.VISIBLE
-        }
-
-        binding.startButton.setOnClickListener {
-            if (SplsGuard.blockMock(this@MapActivity)) return@setOnClickListener
-            viewModel.update(true, lat, lon)
-            mLatLng.let { updateMarker(it!!) }
-            binding.startButton.visibility = View.GONE
-            binding.stopButton.visibility = View.VISIBLE
-            lifecycleScope.launch {
-                mLatLng?.getAddress(getActivityInstance())?.let { address ->
-                    address.collect{ value -> showStartNotification(value) }
-                }
-            }
-            showToast(getString(R.string.location_set))
-        }
-        binding.stopButton.setOnClickListener {
-            mLatLng.let { viewModel.update(false, it!!.latitude, it.longitude) }
-            removeMarker()
-            binding.stopButton.visibility = View.GONE
-            binding.startButton.visibility = View.VISIBLE
-            cancelNotification()
-            showToast(getString(R.string.location_unset))
-        }
     }
 }
