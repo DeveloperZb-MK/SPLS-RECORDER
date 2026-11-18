@@ -14,7 +14,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.splsrecorder.zb.R
-import io.github.jqssun.gpssetter.access.AccessActivity
+import com.splsrecorder.zb.ui.MapActivity
 import io.github.jqssun.gpssetter.utils.PrefManager
 import java.util.concurrent.TimeUnit
 
@@ -41,7 +41,7 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         )
         val open = PendingIntent.getActivity(
             ctx, 1,
-            Intent(ctx, AccessActivity::class.java)
+            Intent(ctx, MapActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
