@@ -39,8 +39,29 @@ class SplsController(private val activity: ComponentActivity) {
     /** Shows a short message inside the SPLS pop-up (about 5 seconds). Set by the pop-up while it is open. */
     var notifier: ((String) -> Unit)? = null
 
-    private val permLauncher = activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { setupStep() }
-    private val bgLauncher = activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { setupStep() }
+    private val deniedAttempts = mutableMapOf<String, Int>()
+    private var openingAppInfo = false
+
+    private val settingsLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        openingAppInfo = false
+        stage = 0
+        asked = false
+        setupStep()
+    }
+    private val permLauncher = activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        val fine = Manifest.permission.ACCESS_FINE_LOCATION
+        if (result[fine] == false) handleRuntimeDenial(fine)
+        setupStep()
+    }
+    private val bgLauncher = activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { permissionGranted ->
+        val permission = when (stage) {
+            2 -> Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            3 -> Manifest.permission.POST_NOTIFICATIONS
+            else -> null
+        }
+        if (!permissionGranted && permission != null) handleRuntimeDenial(permission)
+        setupStep()
+    }
     private val batteryLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { setupStep() }
     private val exportLauncher = activity.registerForActivityResult(ActivityResultContracts.CreateDocument()) { uri -> if (uri != null) doExport(uri) }
     private val importLauncher = activity.registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) doImport(uri) }
@@ -103,6 +124,19 @@ class SplsController(private val activity: ComponentActivity) {
     }
 
     private fun granted(c: Context, p: String) = ContextCompat.checkSelfPermission(c, p) == PackageManager.PERMISSION_GRANTED
+
+    /** After repeated denials, Android may stop displaying the runtime permission dialog.
+     * Once that happens, send the user to this app's details page automatically. */
+    private fun handleRuntimeDenial(permission: String) {
+        val count = (deniedAttempts[permission] ?: 0) + 1
+        deniedAttempts[permission] = count
+        val permanentlyBlocked = !activity.shouldShowRequestPermissionRationale(permission)
+        if (count >= 2 && permanentlyBlocked && !openingAppInfo && attemptActive) {
+            openingAppInfo = true
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + activity.packageName))
+            settingsLauncher.launch(intent)
+        }
+    }
 
     private data class AccessRequirement(
         val title: String,
