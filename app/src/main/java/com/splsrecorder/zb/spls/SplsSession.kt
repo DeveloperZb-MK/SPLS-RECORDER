@@ -15,6 +15,7 @@ object SplsSession {
     fun start(ctx: Context, loc: SplsLocation) {
         PrefManager.setRaw(K.SPLS_ACTIVE_ID, loc.id)
         PrefManager.setRaw(K.SPLS_PAUSED, null)
+        SplsProviders.resetStates()
         PrefManager.setRaw(K.SPLS_ENABLED, "true")
         SplsRecorderService.start(ctx.applicationContext)
     }
