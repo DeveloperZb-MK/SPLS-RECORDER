@@ -19,7 +19,7 @@ def mapsApiKey = localProperties.getProperty("MAPS_API_KEY", "")
 android {
     compileSdk 34
     defaultConfig {
-        applicationId "com.khpalgps.splsrecorder"
+        applicationId "com.splsrecorder.zb"
         minSdk 27
         targetSdk 34
         versionCode 101
