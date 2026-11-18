@@ -31,6 +31,7 @@ import io.github.jqssun.gpssetter.spls.SplsProviders
 import io.github.jqssun.gpssetter.spls.SplsRecorderService
 import io.github.jqssun.gpssetter.spls.SplsSession
 import io.github.jqssun.gpssetter.spls.SplsStore
+import io.github.jqssun.gpssetter.utils.PrefManager
 import io.github.jqssun.gpssetter.utils.SplsBlocks
 
 /** Pop-up of the Smart Provider Learning System: recording and recorded data. */
