@@ -31,7 +31,6 @@ class SplsController(private val activity: ComponentActivity) {
     private var asked = false
     private var settingsAsked = false
     private var attemptActive = false
-    private val requestedStages = HashSet<Int>()
     private var permissionDialog: androidx.appcompat.app.AlertDialog? = null
     private var finished: ((Boolean) -> Unit)? = null
     private var changed: (() -> Unit)? = null
@@ -43,7 +42,6 @@ class SplsController(private val activity: ComponentActivity) {
     private val permLauncher = activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { setupStep() }
     private val bgLauncher = activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { setupStep() }
     private val batteryLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { setupStep() }
-    private val settingsLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { setupStep() }
     private val exportLauncher = activity.registerForActivityResult(ActivityResultContracts.CreateDocument()) { uri -> if (uri != null) doExport(uri) }
     private val importLauncher = activity.registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) doImport(uri) }
 
@@ -146,11 +144,6 @@ class SplsController(private val activity: ComponentActivity) {
         }
     }
 
-    private fun launchAppSettings() {
-        val c = appCtx() ?: run { end(false); return }
-        settingsLauncher.launch(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + c.packageName)))
-    }
-
     /** Replaces the former one-permission-at-a-time failure pop-ups with one live summary. */
     private fun showMissingSummary() {
         if (!attemptActive) return
@@ -205,9 +198,8 @@ class SplsController(private val activity: ComponentActivity) {
                     if (granted(c, Manifest.permission.ACCESS_FINE_LOCATION)) { advance(2); continue }
                     if (!asked) {
                         asked = true
-                        val permission = Manifest.permission.ACCESS_FINE_LOCATION
-                        if (requestedStages.contains(1) && !activity.shouldShowRequestPermissionRationale(permission)) launchAppSettings()
-                        else { requestedStages.add(1); permLauncher.launch(arrayOf(permission, Manifest.permission.ACCESS_COARSE_LOCATION)) }
+                        // Returning with Back is not a permanent denial. Re-request the Android runtime prompt.
+                        permLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
                         return
                     }
                     showMissingSummary()
@@ -217,9 +209,8 @@ class SplsController(private val activity: ComponentActivity) {
                     if (Build.VERSION.SDK_INT < 29 || granted(c, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) { advance(3); continue }
                     if (!asked) {
                         asked = true
-                        val permission = Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                        if (requestedStages.contains(2) && !activity.shouldShowRequestPermissionRationale(permission)) launchAppSettings()
-                        else { requestedStages.add(2); bgLauncher.launch(permission) }
+                        // Reopen the Android background-location permission screen on each retry.
+                        bgLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                         return
                     }
                     showMissingSummary()
@@ -229,9 +220,8 @@ class SplsController(private val activity: ComponentActivity) {
                     if (Build.VERSION.SDK_INT < 33 || granted(c, Manifest.permission.POST_NOTIFICATIONS)) { advance(4); continue }
                     if (!asked) {
                         asked = true
-                        val permission = Manifest.permission.POST_NOTIFICATIONS
-                        if (requestedStages.contains(3) && !activity.shouldShowRequestPermissionRationale(permission)) launchAppSettings()
-                        else { requestedStages.add(3); bgLauncher.launch(permission) }
+                        // Retry the Android notification permission prompt instead of opening App info.
+                        bgLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         return
                     }
                     showMissingSummary()
