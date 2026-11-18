@@ -119,7 +119,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
             }
             true
         }
-        binding.searchBox.setOnEditorActionListener { v, actionId, _ ->
+        binding.search.searchBox.setOnEditorActionListener { v, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 search(v.text.toString())
                 (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(v.windowToken, 0)
@@ -353,7 +353,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
             Toast.makeText(this, "Place search is not available on this phone.", Toast.LENGTH_LONG).show()
             return
         }
-        binding.searchProgress.visibility = View.VISIBLE
+        binding.search.searchProgress.visibility = View.VISIBLE
         Thread {
             @Suppress("DEPRECATION")
             val found = try {
@@ -362,7 +362,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
                 null
             }
             runOnUiThread {
-                binding.searchProgress.visibility = View.GONE
+                binding.search.searchProgress.visibility = View.GONE
                 if (found == null) {
                     Toast.makeText(this, getString(R.string.no_internet) + " or place not found", Toast.LENGTH_LONG).show()
                 } else if (::map.isInitialized) {
