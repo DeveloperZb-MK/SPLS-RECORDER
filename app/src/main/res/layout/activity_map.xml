@@ -123,52 +123,6 @@
             app:iconSize="32dp" />
         
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/start_button"
-            android:contentDescription="@string/location_set"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_above="@id/mapType"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_alignParentEnd="true"
-            android:layout_marginStart="32dp"
-            android:layout_marginEnd="32dp"
-            android:alpha="0.95"
-            android:elevation="10dp"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_play" 
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="32dp" 
-
-            android:visibility="visible" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/stop_button"
-             android:contentDescription="@string/location_unset"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_above="@id/mapType"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_alignParentEnd="true"
-            android:layout_marginStart="32dp"
-            android:layout_marginEnd="32dp"
-            android:alpha="0.95"
-            android:elevation="10dp"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_stop"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="32dp" 
-
-            android:visibility="gone" />
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/zoom_out"
             style="@style/Widget.Material3.Button.TonalButton"
             android:contentDescription="@string/zoom_out_desc"
