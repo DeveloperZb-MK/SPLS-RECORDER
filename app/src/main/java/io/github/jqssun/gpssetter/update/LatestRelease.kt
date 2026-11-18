@@ -1,6 +1,6 @@
 package io.github.jqssun.gpssetter.update
 
-import io.github.jqssun.gpssetter.BuildConfig
+import com.splsrecorder.zb.BuildConfig
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
