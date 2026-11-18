@@ -13,7 +13,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.R
 import java.util.concurrent.TimeUnit
 
 /** Runs every 12 hours and calls /api/verify with the saved token. */
