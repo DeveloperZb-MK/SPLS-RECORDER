@@ -7,8 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.core.content.ContextCompat
-import io.github.jqssun.gpssetter.R
-
+import com.splsrecorder.zb.R
 /** The picture of an SPLS marker on the map: a small brain (18dp) with its number beside it, readable on any map. */
 object SplsMarker {
 
