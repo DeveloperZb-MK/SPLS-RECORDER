@@ -28,6 +28,7 @@ import com.google.android.gms.location.Priority
 import com.google.android.material.snackbar.Snackbar
 import com.splsrecorder.zb.R
 import com.splsrecorder.zb.databinding.ActivityMapBinding
+import com.splsrecorder.zb.spls.SplsAreas
 import com.splsrecorder.zb.spls.SplsGeo
 import com.splsrecorder.zb.spls.SplsLocation
 import com.splsrecorder.zb.spls.SplsSession
@@ -325,7 +326,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
                 clearPreview()
                 drawSplsCircles(true)
                 startAfterPick(loc)
-            }, { clearPreview() })
+            }, { clearPreview() }, { radius -> SplsAreas.overlapMessage(this, lat, lon, radius, null) })
         })
     }
 
