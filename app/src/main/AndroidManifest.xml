@@ -31,7 +31,6 @@
             android:label="@string/title_activity_settings"
             android:launchMode="singleTop">
         </activity>
-        <activity android:name=".access.AccessActivity" android:exported="false" />
         <activity
             android:name=".ui.SplsDiagnosticActivity"
             android:exported="false"
