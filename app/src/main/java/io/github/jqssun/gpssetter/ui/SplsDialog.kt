@@ -45,6 +45,7 @@ object SplsDialog {
         val density = ctx.resources.displayMetrics.density
         fun dp(v: Int) = (v * density).toInt()
         var guard = false
+        var switchEnablePending = false
         val expanded = HashSet<String>()
         var dataSignature = ""
         var refreshAll: () -> Unit = {}
@@ -387,6 +388,11 @@ object SplsDialog {
 
         controller.notifier = { msg -> say(msg) }
         dialog.setOnDismissListener {
+            val cancelledEnable = controller.cancelEnable()
+            if (cancelledEnable && switchEnablePending) {
+                SplsSession.setFeatureEnabled(false)
+                switchEnablePending = false
+            }
             autoOff()
             onChanged?.invoke()
             controller.notifier = null
@@ -405,8 +411,10 @@ object SplsDialog {
         sw.setOnCheckedChangeListener { _, checked ->
             if (guard) return@setOnCheckedChangeListener
             if (checked) {
+                switchEnablePending = true
                 SplsSession.setFeatureEnabled(true)
                 controller.enable { ok ->
+                    switchEnablePending = false
                     if (!ok) {
                         // Do not leave the feature toggle enabled when startup requirements fail.
                         SplsSession.setFeatureEnabled(false)
@@ -421,6 +429,7 @@ object SplsDialog {
                     }
                 }
             } else {
+                switchEnablePending = false
                 SplsSession.setFeatureEnabled(false)
                 SplsSession.stopForNow(ctx)
                 say("Recording stopped. Start a record again with its play button.")
