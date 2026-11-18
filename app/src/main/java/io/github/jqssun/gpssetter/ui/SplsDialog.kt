@@ -143,7 +143,7 @@ object SplsDialog {
                         input.error = "Enter a whole number of 1 or more, or tap No limit."
                     } else {
                         // Match the Recording data scope: the active record, or all saved
-                        // records when no recording is active (deployment has been removed).
+                        // records when no recording is active.
                         val recording = if (SplsSession.isOn()) SplsSession.active(ctx) else null
                         val existing = if (recording != null) {
                             SplsStore.providerCount(ctx, recording.id, key)
@@ -314,7 +314,6 @@ object SplsDialog {
                 !on -> "Recording: off"
                 paused -> "Recording: paused$where"
                 PrefManager.isStarted -> "Recording: waiting, mocking is running$where"
-                PrefManager.isSystemHooked -> "Recording: waiting, Hook system location is on$where"
                 SplsRecorderService.running -> "Recording: running$where"
                 else -> "Recording: starting$where"
             }
