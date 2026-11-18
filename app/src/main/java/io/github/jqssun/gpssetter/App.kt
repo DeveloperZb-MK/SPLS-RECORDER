@@ -1,6 +1,7 @@
 package io.github.jqssun.gpssetter
 
 import androidx.appcompat.app.AppCompatDelegate
+import com.splsrecorder.zb.BuildConfig
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 import io.github.jqssun.gpssetter.update.UpdateWorker
