@@ -80,7 +80,7 @@ jobs:
           mkdir -p out
           VER=$(grep "def tagName" app/build.gradle | sed -E "s/.*'([^']+)'.*/\\1/")
           echo "APP_VERSION=$VER" >> $GITHUB_ENV
-          find app/build/outputs/apk/foss/debug -name '*.apk' -exec cp {} "out/SPLS-Recorder-${VER}-debug.apk" \\;
+          find app/build/outputs/apk/foss/debug -name '*.apk' -exec cp {} "out/SPLS-Recorder-${VER}-debug.apk" \;
           test -s "out/SPLS-Recorder-${VER}-debug.apk"
           ls -la out
 
