@@ -82,7 +82,7 @@ android {
         }
     }
 
-    namespace 'io.github.jqssun.gpssetter'
+    namespace 'com.splsrecorder.zb'
 }
 
 dependencies {
