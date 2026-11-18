@@ -111,7 +111,7 @@ jobs:
           files: out/*.apk
           token: ${{ secrets.CUSTOM_RELEASE_TOKEN }}
 
-      # 2. COPY README AND NOTICE TO THE PUBLIC REPO'S MAIN PAGE
+      # 2. COPY README AND NOTICE TO THE PUBLIC REPO'S MAIN PAGE 
       - name: Copy README and NOTICE to Public Repo
         if: ${{ inputs.publish_release }}
         run: |
