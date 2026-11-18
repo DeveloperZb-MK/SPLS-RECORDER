@@ -19,6 +19,7 @@ import android.widget.TextView
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
 import com.splsrecorder.zb.R
+import com.splsrecorder.zb.spls.SplsAreas
 import com.splsrecorder.zb.spls.SplsLocation
 import com.splsrecorder.zb.spls.SplsSession
 import com.splsrecorder.zb.spls.SplsStore
@@ -235,7 +236,7 @@ object SplsListUi {
                 SplsPrompts.askRadius(ctx, "Change radius", l.radius, false, null, { r ->
                     SplsStore.find(ctx, l.id)?.let { SplsStore.update(ctx, it.copy(radius = r)) }
                     h.changed()
-                })
+                }, null, { radius -> SplsAreas.overlapMessage(ctx, l.lat, l.lon, radius, l.id) })
             }
         }
 
