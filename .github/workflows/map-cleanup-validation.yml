@@ -24,5 +24,3 @@ jobs:
         run: chmod +x ./gradlew
       - name: Build FOSS debug APK
         run: ./gradlew assembleFossDebug --stacktrace
-      - name: Build Full debug APK
-        run: ./gradlew assembleFullDebug --stacktrace

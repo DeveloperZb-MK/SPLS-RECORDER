@@ -8,14 +8,6 @@ plugins {
 
 def tagName = '1.0.1'
 
-// Load the optional Google Maps key directly; an empty secret must remain a valid Java string.
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withInputStream { localProperties.load(it) }
-}
-def mapsApiKey = localProperties.getProperty("MAPS_API_KEY", "")
-
 android {
     compileSdk 34
     defaultConfig {
@@ -26,8 +18,6 @@ android {
         versionName tagName
         // testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TAG_NAME", "\"${tagName}\"")
-        buildConfigField("String", "MAPS_API_KEY", "\"${mapsApiKey}\"")
-        manifestPlaceholders = [MAPS_API_KEY: mapsApiKey]
     }
     splits {
         abi {
@@ -68,11 +58,7 @@ android {
     productFlavors {
         foss {
             dimension "version"
-            // versionNameSuffix "-foss"
             isDefault true
-        }
-        full {
-            dimension "version"
         }
     }
 
@@ -91,7 +77,6 @@ dependencies {
     /* {
         exclude group: 'com.google.android.gms'
     } */
-    fullImplementation 'com.google.android.gms:play-services-location:21.0.1'
 
 
     implementation 'androidx.core:core-ktx:1.9.0'
