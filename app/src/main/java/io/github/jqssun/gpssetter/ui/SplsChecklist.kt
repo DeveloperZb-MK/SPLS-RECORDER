@@ -23,7 +23,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.R
 import io.github.jqssun.gpssetter.spls.SplsProviders
 import io.github.jqssun.gpssetter.utils.PrefKeys as K
 import io.github.jqssun.gpssetter.utils.PrefManager
