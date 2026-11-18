@@ -12,6 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.splsrecorder.zb.R
+import com.splsrecorder.zb.spls.SplsAreas
 import com.splsrecorder.zb.spls.SplsLocation
 import com.splsrecorder.zb.spls.SplsSession
 import com.splsrecorder.zb.spls.SplsStore
@@ -126,7 +127,7 @@ object SplsFlow {
                 val loc = SplsLocation(SplsStore.newId(), name, SplsLocation.MODE_CIRCLE, fix.latitude, fix.longitude, radius, false, System.currentTimeMillis())
                 SplsStore.addLocation(ctx, loc)
                 begin(ctx, loc, done, canceled)
-            }, canceled)
+            }, canceled, { radius -> SplsAreas.overlapMessage(ctx, fix.latitude, fix.longitude, radius, null) })
         }, canceled)
     }
 
