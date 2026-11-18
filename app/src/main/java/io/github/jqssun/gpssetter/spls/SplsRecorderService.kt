@@ -114,7 +114,7 @@ class SplsRecorderService : Service() {
             return
         }
         running = true
-        val t = HandlerThread("khpal-spls")
+        val t = HandlerThread("spls-recorder")
         t.start()
         thread = t
         val h = Handler(t.looper)
