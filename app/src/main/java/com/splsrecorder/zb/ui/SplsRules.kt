@@ -126,8 +126,39 @@ object SplsActions {
 
     fun stop(ctx: Context, l: SplsLocation, say: (String) -> Unit, changed: () -> Unit) {
         if (!SplsRules.isActive(l)) return
-        SplsSession.stopForNow(ctx)
-        say("Recording stopped. \"${l.name}\" is saved and can be started again with its play button.")
-        changed()
+
+        fun finishStop() {
+            SplsSession.stopForNow(ctx)
+            say("Recording stopped. \"" + l.name + "\" will not resume automatically; tap Play to start it again.")
+            changed()
+        }
+
+        if (!l.isCircle || PrefManager.getRaw(K.SPLS_STOP_WARNING_HIDDEN) == "true") {
+            finishStop()
+            return
+        }
+
+        val content = LinearLayout(ctx).apply {
+            val density = ctx.resources.displayMetrics.density
+            setPadding((24 * density).toInt(), (8 * density).toInt(), (24 * density).toInt(), 0)
+        }
+        val remember = CheckBox(ctx).apply {
+            text = "Do not show this message again"
+            isChecked = false
+        }
+        content.addView(remember)
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Stop SPLS recording?")
+            .setMessage(
+                "Stopping ends automatic area-based resumption for this record. If you want this record to resume automatically when you re-enter its saved area while Enable SPLS recording is on, choose Pause instead.\n\n" +
+                    "You can always start this record again manually with Play."
+            )
+            .setView(content)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Stop") { _, _ ->
+                if (remember.isChecked) PrefManager.setRaw(K.SPLS_STOP_WARNING_HIDDEN, "true")
+                finishStop()
+            }
+            .show()
     }
 }
