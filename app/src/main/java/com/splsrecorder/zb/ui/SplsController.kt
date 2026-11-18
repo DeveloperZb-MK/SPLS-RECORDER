@@ -44,13 +44,12 @@ class SplsController(private val activity: ComponentActivity) {
 
     private val settingsLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         openingAppInfo = false
-        stage = 0
-        asked = false
+        // Re-check grants after the user returns; do not immediately launch another prompt.
         setupStep()
     }
     private val permLauncher = activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         val fine = Manifest.permission.ACCESS_FINE_LOCATION
-        if (result[fine] == false) handleRuntimeDenial(fine)
+        if (result[fine] == false && handleRuntimeDenial(fine)) return@registerForActivityResult
         setupStep()
     }
     private val bgLauncher = activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { permissionGranted ->
@@ -59,7 +58,7 @@ class SplsController(private val activity: ComponentActivity) {
             3 -> Manifest.permission.POST_NOTIFICATIONS
             else -> null
         }
-        if (!permissionGranted && permission != null) handleRuntimeDenial(permission)
+        if (!permissionGranted && permission != null && handleRuntimeDenial(permission)) return@registerForActivityResult
         setupStep()
     }
     private val batteryLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { setupStep() }
@@ -127,7 +126,7 @@ class SplsController(private val activity: ComponentActivity) {
 
     /** After repeated denials, Android may stop displaying the runtime permission dialog.
      * Once that happens, send the user to this app's details page automatically. */
-    private fun handleRuntimeDenial(permission: String) {
+    private fun handleRuntimeDenial(permission: String): Boolean {
         val count = (deniedAttempts[permission] ?: 0) + 1
         deniedAttempts[permission] = count
         val permanentlyBlocked = !activity.shouldShowRequestPermissionRationale(permission)
@@ -135,7 +134,23 @@ class SplsController(private val activity: ComponentActivity) {
             openingAppInfo = true
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + activity.packageName))
             settingsLauncher.launch(intent)
+            return true
         }
+        return false
+    }
+
+    private fun hasBlockedRuntimePermission(): Boolean {
+        return deniedAttempts.any { (permission, count) ->
+            count >= 2 && !granted(activity, permission) &&
+                !activity.shouldShowRequestPermissionRationale(permission)
+        }
+    }
+
+    private fun openAppInfo() {
+        if (openingAppInfo) return
+        openingAppInfo = true
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + activity.packageName))
+        settingsLauncher.launch(intent)
     }
 
     private data class AccessRequirement(
@@ -196,12 +211,16 @@ class SplsController(private val activity: ComponentActivity) {
             .setTitle("SPLS Recording – Required Access")
             .setMessage(message)
             .setCancelable(true)
-            .setPositiveButton("Open Settings") { _, _ ->
+            .setPositiveButton(if (hasBlockedRuntimePermission()) "Open App Settings" else "Open Settings") { _, _ ->
                 permissionDialog = null
-                stage = 0
-                asked = false
-                settingsAsked = false
-                setupStep()
+                if (hasBlockedRuntimePermission()) {
+                    openAppInfo()
+                } else {
+                    stage = 0
+                    asked = false
+                    settingsAsked = false
+                    setupStep()
+                }
             }
             .setNegativeButton("Cancel") { _, _ -> end(false) }
             .setOnCancelListener { end(false) }
