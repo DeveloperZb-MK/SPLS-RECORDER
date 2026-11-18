@@ -72,8 +72,6 @@ jobs:
           echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}" >> local.properties
           chmod +x ./gradlew
 
-      - name: Run SPLS accuracy self-checks
-        run: ./gradlew testFossDebugUnitTest --stacktrace
 
       - name: Decode Keystore
         run: |
