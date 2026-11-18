@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_check_title">Check for updates</string>
+    <string name="update_check_summary">Automatically check for the latest version and notify me</string>
+    <string name="update_notif_text">%1$s is ready. Tap to update.</string>
+    <string name="update_channel_name">App updates</string>
+    <string name="update_later">Later</string>
+</resources>

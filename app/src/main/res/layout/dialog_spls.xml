@@ -131,6 +131,53 @@
                 android:layout_marginTop="8dp" />
         </LinearLayout>
 
+        <!-- learned behaviour deployment -->
+        <LinearLayout
+            android:id="@+id/spls_deployment_section"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_spls_card"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Learned Behaviour Deployment"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/spls_deploy_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:alpha="0.8"
+                android:text="Select a learned behaviour record to inject it into your fake location. Linked settings work only while a record is activated."
+                android:textSize="13sp" />
+
+            <FrameLayout
+                android:id="@+id/spls_list_b_holder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:visibility="gone" />
+        </LinearLayout>
+
         <!-- recorded data -->
         <TextView
             android:layout_width="match_parent"
@@ -165,7 +212,7 @@
             android:alpha="0.6"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
-            android:text="Each provider needs 300 records and the required samples in every compulsory accuracy range. Tap a provider to see its ranges."
+            android:text="Each provider needs 500 records and the required samples in every compulsory accuracy range. Tap a provider to see its ranges."
             android:textSize="12sp" />
 
         <!-- import and export -->

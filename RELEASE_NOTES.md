@@ -1,0 +1,18 @@
+SPLS update
+- Accuracy blocks changed (1 to <5 m ... 130 m and above). Compulsory and optional blocks are now set per provider.
+- Minimum records per provider is now 500.
+- No more cap of records per block or per provider, in the app and in the CSV.
+- The CSV has 15 columns now: bearing, bearing accuracy, jitter and drift are recorded. Old 11-column files still import.
+- Recording keeps one row per provider every 3 seconds. A missing speed stays empty (not 0).
+- Recording radius can be as small as 1.5 m. A fix is kept unless it is clearly outside the circle plus its own accuracy.
+- New toggle: SPLS learned behaviour deployment (Network, GPS, Fused accuracy)
+- New settings: Bearing, Bearing accuracy, Position jitter, Position drift
+- Linked settings work only while a record is activated in Learned Behaviour Deployment
+- Map SPLS button opens the full SPLS pop-up when records exist
+- Each provider (Network, GPS, Fused) has its own Pause / Resume and Stop buttons in the SPLS pop-up
+- Each provider has its own editable maximum number of records (default: no limit). Only that provider stops at its maximum
+- While SPLS recording is on, walking into another saved area moves the recording to that area; leaving the radius stops it and coming back resumes it
+- A continued recording (no area limit) is never stopped or moved by other areas
+- A new area cannot overlap a saved area: a clear warning is shown
+- Before a recording starts, a checklist waits until Network, GPS and Fused all have a tick (with hints, and a Cancel button)
+- The "Auto from movement" tab label now wraps onto two lines instead of being cut

@@ -1,19 +1,23 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
+    id 'dagger.hilt.android.plugin'
+    id 'kotlin-parcelize'
+    id 'com.google.devtools.ksp'
 }
 
-def tagName = '1.0.0'
+def tagName = '1.0.1'
 
 android {
-    namespace 'com.splsrecorder.zb'
     compileSdk 34
     defaultConfig {
         applicationId "com.khpalgps.splsrecorder"
         minSdk 27
         targetSdk 34
-        versionCode 100
+        versionCode 101
         versionName tagName
+        // testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TAG_NAME", "\"${tagName}\"")
     }
     splits {
@@ -43,8 +47,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (signingConfigs.release.storeFile != null) {
                 signingConfig signingConfigs.release
@@ -65,18 +69,64 @@ android {
         viewBinding true
         buildConfig true
     }
+
+    flavorDimensions += "version"
+    productFlavors {
+        foss {
+            dimension "version"
+            // versionNameSuffix "-foss"
+            isDefault true
+        }
+        full {
+            dimension "version"
+        }
+    }
+
+    namespace 'io.github.jqssun.gpssetter'
 }
 
 dependencies {
-    // key-free map (maplibre, BSD 2-clause) and location (microg, Apache 2.0)
-    implementation 'org.microg.gms:play-services-location:0.3.6.244735'
-    implementation 'org.maplibre.gl:android-sdk:11.8.2'
+    // Local JVM self-checks for the SPLS learned accuracy model (not included in the APK).
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20231013'
+
+
+    // use microg (apache 2.0) and maplibre (bsd 2-clause)
+    fossImplementation 'org.microg.gms:play-services-location:0.3.6.244735'
+    fossImplementation ('org.maplibre.gl:android-sdk:11.8.2')
+    /* {
+        exclude group: 'com.google.android.gms'
+    } */
+    fullImplementation 'com.google.android.gms:play-services-location:21.0.1'
+    fullImplementation 'com.google.android.gms:play-services-maps:18.1.0'
+
 
     implementation 'androidx.core:core-ktx:1.9.0'
     implementation 'androidx.appcompat:appcompat:1.7.0-alpha01'
     implementation 'androidx.activity:activity-ktx:1.6.1'
-    implementation 'androidx.fragment:fragment-ktx:1.5.7'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.0-alpha05'
-    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.6.0-alpha04"
-    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.preference:preference:1.2.0'
+    implementation 'androidx.datastore:datastore-preferences:1.0.0'
+    implementation "androidx.drawerlayout:drawerlayout:1.2.0-alpha01"
+    implementation 'androidx.room:room-runtime:2.5.0'
+    implementation 'androidx.room:room-ktx:2.5.0'
+    ksp 'androidx.room:room-compiler:2.5.0'
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.0-alpha04"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.6.0-alpha04"
+
+    implementation "com.google.android.material:material:1.12.0"
+    implementation "com.google.dagger:hilt-android:2.55"
+    ksp "com.google.dagger:hilt-compiler:2.55"
+
+    // timber
+    implementation 'com.jakewharton.timber:timber:5.0.1'
+
+    // retrofit
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+
+    implementation 'com.github.lukkass222:virtual-joystick-android:1.13.5'
+
+    // access system: background session check
+    implementation 'androidx.work:work-runtime-ktx:2.9.0'
 }

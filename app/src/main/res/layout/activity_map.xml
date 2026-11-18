@@ -1,68 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <FrameLayout
-        android:id="@+id/map"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/container"
+    android:orientation="vertical"
+    android:fitsSystemWindows="false">
 
     <RelativeLayout
-        android:id="@+id/overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <RelativeLayout
-            android:id="@+id/search_holder"
+        <com.google.android.material.appbar.MaterialToolbar
+            android:visibility="gone"
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:layout_marginTop="24dp"
+            android:elevation="1dp"
+            app:navigationIcon="@drawable/ic_baseline_menu_24"/>
+
+        <include
+            android:id="@+id/search"
+            layout="@layout/include_search"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="10dp"
-            android:elevation="8dp">
+            android:layout_marginStart="18dp"
+            android:layout_marginTop="72dp"
+            android:layout_marginEnd="18dp"
+            android:layout_marginBottom="72dp"
+            android:gravity="center_vertical"
+            android:lines="1"
+            android:padding="8dp"
+            android:paddingStart="8dp"
+            android:textSize="18sp"
+        />
 
-            <EditText
-                android:id="@+id/search_box"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/search_box_height"
-                android:background="@drawable/search_box_background"
-                android:drawableStart="@drawable/ic_baseline_search_24"
-                android:drawablePadding="@dimen/padding_16"
-                android:hint="@string/search"
-                android:imeOptions="actionSearch"
-                android:importantForAutofill="no"
-                android:inputType="text"
-                android:maxLines="1"
-                android:paddingStart="@dimen/padding_16"
-                android:paddingEnd="52dp" />
-
-            <ProgressBar
-                android:id="@+id/search_progress"
-                android:layout_width="@dimen/progressbar_size"
-                android:layout_height="@dimen/progressbar_size"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:layout_marginEnd="8dp"
-                android:padding="@dimen/padding_8"
-                android:visibility="gone" />
-        </RelativeLayout>
+        <include
+            android:id="@+id/map_container"
+            layout="@layout/map_container"
+            android:layout_height="match_parent"
+            android:layout_width="match_parent"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/getlocation"
             style="@style/Widget.Material3.Button.TonalButton"
+            android:contentDescription="@string/getlocation_desc"
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:layout_alignParentEnd="true"
             android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
             android:layout_marginStart="32dp"
-            android:layout_marginTop="16dp"
             android:layout_marginEnd="32dp"
+            android:layout_marginTop="16dp"
             android:layout_marginBottom="96dp"
             android:alpha="0.95"
-            android:contentDescription="@string/my_location_desc"
             android:elevation="10dp"
             android:insetLeft="0dp"
             android:insetTop="0dp"
@@ -72,19 +66,20 @@
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="32dp" />
-
+            <!-- app:backgroundTint="@color/background" -->
+        
         <com.google.android.material.button.MaterialButton
             android:id="@+id/spls_button"
             style="@style/Widget.Material3.Button.TonalButton"
+            android:contentDescription="SPLS"
+            android:layout_above="@id/getlocation"
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:layout_above="@id/getlocation"
             android:layout_alignParentEnd="true"
             android:layout_marginStart="32dp"
-            android:layout_marginTop="16dp"
             android:layout_marginEnd="32dp"
+            android:layout_marginTop="16dp"
             android:alpha="0.95"
-            android:contentDescription="@string/spls_desc"
             android:elevation="10dp"
             android:insetLeft="0dp"
             android:insetTop="0dp"
@@ -94,19 +89,19 @@
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="32dp" />
-
+        
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/map_type"
+            android:id="@+id/addfavorite"
             style="@style/Widget.Material3.Button.TonalButton"
+            android:contentDescription="Change map style"
+            android:layout_above="@id/spls_button"
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:layout_above="@id/spls_button"
             android:layout_alignParentEnd="true"
             android:layout_marginStart="32dp"
-            android:layout_marginTop="16dp"
             android:layout_marginEnd="32dp"
+            android:layout_marginTop="16dp"
             android:alpha="0.95"
-            android:contentDescription="@string/map_type_desc"
             android:elevation="10dp"
             android:insetLeft="0dp"
             android:insetTop="0dp"
@@ -116,10 +111,57 @@
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="32dp" />
+        
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/start_button"
+            android:contentDescription="@string/location_set"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_above="@id/addfavorite"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginStart="32dp"
+            android:layout_marginEnd="32dp"
+            android:alpha="0.95"
+            android:elevation="10dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            app:icon="@drawable/ic_play" 
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="32dp" 
+
+            android:visibility="visible" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/stop_button"
+             android:contentDescription="@string/location_unset"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_above="@id/addfavorite"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginStart="32dp"
+            android:layout_marginEnd="32dp"
+            android:alpha="0.95"
+            android:elevation="10dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            app:icon="@drawable/ic_stop"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="32dp" 
+
+            android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/zoom_out"
             style="@style/Widget.Material3.Button.TonalButton"
+            android:contentDescription="@string/zoom_out_desc"
             android:layout_width="52dp"
             android:layout_height="52dp"
             android:layout_alignParentStart="true"
@@ -127,7 +169,6 @@
             android:layout_marginStart="24dp"
             android:layout_marginBottom="96dp"
             android:alpha="0.95"
-            android:contentDescription="@string/zoom_out_desc"
             android:elevation="10dp"
             android:insetLeft="0dp"
             android:insetTop="0dp"
@@ -141,6 +182,7 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/zoom_in"
             style="@style/Widget.Material3.Button.TonalButton"
+            android:contentDescription="@string/zoom_in_desc"
             android:layout_width="52dp"
             android:layout_height="52dp"
             android:layout_above="@id/zoom_out"
@@ -148,7 +190,6 @@
             android:layout_marginStart="24dp"
             android:layout_marginBottom="8dp"
             android:alpha="0.95"
-            android:contentDescription="@string/zoom_in_desc"
             android:elevation="10dp"
             android:insetLeft="0dp"
             android:insetTop="0dp"
@@ -158,5 +199,17 @@
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="28dp" />
+
     </RelativeLayout>
-</FrameLayout>
+
+    <com.google.android.material.navigation.NavigationView
+        android:visibility="gone"
+        android:id="@+id/nav_view"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        app:headerLayout="@layout/drawer_header"
+        app:menu="@menu/main_menu">
+    </com.google.android.material.navigation.NavigationView>
+
+</androidx.drawerlayout.widget.DrawerLayout>

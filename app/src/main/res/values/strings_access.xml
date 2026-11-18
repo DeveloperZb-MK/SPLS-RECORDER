@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="access_title">Request Access</string>
+    <string name="access_subtitle">Fill in your details. You can use the app after approval.</string>
+    <string name="access_name">Name</string>
+    <string name="access_email">Email</string>
+    <string name="access_mobile">Mobile number</string>
+    <string name="access_city">City</string>
+    <string name="access_country">Country</string>
+    <string name="access_submit">Submit</string>
+    <string name="access_checking">Checking access…</string>
+    <string name="access_waiting_title">Waiting for Approval</string>
+    <string name="access_waiting_text">Your request was sent. This screen updates by itself when it is approved.</string>
+    <string name="access_cancel_request">Cancel request</string>
+    <string name="access_declined_title">Request Declined</string>
+    <string name="access_declined_text">Your request was not approved.</string>
+    <string name="access_new_request">Submit a new request</string>
+    <string name="access_offline_title">No connection</string>
+    <string name="access_offline_text">Could not reach the server. Check your internet and try again.</string>
+    <string name="access_retry">Retry</string>
+    <string name="access_invalid_name">Please enter a valid name</string>
+    <string name="access_invalid_mobile">Please enter a valid mobile number</string>
+    <string name="access_location_required">Error: Location is required to submit the request. Please enable GPS and try again.</string>
+    <string name="access_required">Required</string>
+    <string name="access_invalid_email">Please enter a valid email address</string>
+    <string name="access_send_failed">Could not send the request. Try again.</string>
+    <string name="access_no_connection">No connection. Try again.</string>
+    <string name="access_session_ended">Your access has ended. Please request access again.</string>
+    <string name="access_channel_name">Access</string>
+    <string name="access_expired_title">Session expired</string>
+    <string name="access_expired_text">Your access has expired. Open the app to request access again.</string>
+</resources>
