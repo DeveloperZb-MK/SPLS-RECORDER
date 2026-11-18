@@ -17,6 +17,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.splsrecorder.zb.R
+import com.splsrecorder.zb.spls.SplsAreas
 import com.splsrecorder.zb.spls.SplsLocation
 
 /** Small reusable pop-ups for SPLS: a name, a radius, a choice from a list, a confirmation. */
@@ -74,7 +75,8 @@ object SplsPrompts {
      */
     fun askRadius(
         ctx: Context, title: String, initial: Double, overMap: Boolean,
-        onLive: ((Double) -> Unit)?, onOk: (Double) -> Unit, onCancel: (() -> Unit)? = null
+        onLive: ((Double) -> Unit)?, onOk: (Double) -> Unit, onCancel: (() -> Unit)? = null,
+        check: ((Double) -> String?)? = null
     ) {
         val (til, et) = field(ctx, "Radius (meters)", fmt(initial), true)
         val note = TextView(ctx).apply {
@@ -113,8 +115,19 @@ object SplsPrompts {
                     }
                     v > SplsLocation.MAX_RADIUS -> til.error = "The radius cannot be larger than ${fmt(SplsLocation.MAX_RADIUS)} m"
                     else -> {
-                        dialog.dismiss()
-                        onOk(v)
+                        val problem = check?.invoke(v)
+                        if (problem != null) {
+                            til.error = problem
+                            MaterialAlertDialogBuilder(ctx)
+                                .setTitle("Areas overlap")
+                                .setMessage(problem)
+                                .setPositiveButton("OK", null)
+                                .show()
+                        } else {
+                            til.error = null
+                            dialog.dismiss()
+                            onOk(v)
+                        }
                     }
                 }
             }
