@@ -19,7 +19,7 @@ import android.widget.TextView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.R
 import io.github.jqssun.gpssetter.spls.SplsAreas
 import io.github.jqssun.gpssetter.spls.SplsLocation
 import io.github.jqssun.gpssetter.spls.SplsSession
