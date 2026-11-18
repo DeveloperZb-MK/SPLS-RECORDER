@@ -16,7 +16,7 @@ import androidx.appcompat.app.AlertDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.R
 import io.github.jqssun.gpssetter.spls.SplsLocation
 
 /** Small reusable pop-ups for SPLS: a name, a radius, a choice from a list, a confirmation. */
