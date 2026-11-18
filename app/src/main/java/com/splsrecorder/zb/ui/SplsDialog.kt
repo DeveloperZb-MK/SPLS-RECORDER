@@ -178,10 +178,12 @@ object SplsDialog {
         fun controlRow(key: String): View {
             val on = SplsSession.isOn()
             val state = SplsProviders.state(key)
+            val recording = if (SplsSession.isOn()) SplsSession.active(ctx) else null
+            val counts = if (recording != null) SplsStore.countsOfLocation(ctx, recording.id) else SplsStore.counts(ctx)
             val total = when (key) {
-                "gps" -> scope().counts.gps
-                "network" -> scope().counts.network
-                else -> scope().counts.fused
+                "gps" -> counts.gps
+                "network" -> counts.network
+                else -> counts.fused
             }
             val reached = SplsProviders.limitReached(key, total)
             val status = when {
