@@ -96,22 +96,27 @@ object SplsFlow {
     }
 
     /** Saves the location and starts the recording, unless something blocks it. */
-    fun begin(ctx: Context, loc: SplsLocation, done: () -> Unit, canceled: () -> Unit) {
+    fun begin(
+        ctx: Context, loc: SplsLocation, done: () -> Unit, canceled: () -> Unit,
+        confirmReady: Boolean = false
+    ) {
         val blockers = SplsGuard.blockers()
         if (blockers.isNotEmpty()) {
             SplsGuard.showStopFirst(ctx, blockers)
             canceled()
             return
         }
-        SplsSession.start(ctx, loc)
-        done()
+        SplsChecklist.show(ctx, onReady = {
+            SplsSession.start(ctx, loc)
+            done()
+        }, onCancel = { canceled() }, confirmReady = confirmReady)
     }
 
     private fun startContinuous(ctx: Context, done: () -> Unit, canceled: () -> Unit) {
         SplsPrompts.askName(ctx, "Name this recording", "", taken(ctx), { name ->
             val loc = SplsLocation(SplsStore.newId(), name, SplsLocation.MODE_CONTINUOUS, 0.0, 0.0, SplsLocation.MIN_RADIUS, false, System.currentTimeMillis())
             SplsStore.addLocation(ctx, loc)
-            begin(ctx, loc, done, canceled)
+            begin(ctx, loc, done, canceled, confirmReady = true)
         }, canceled)
     }
 
@@ -126,7 +131,7 @@ object SplsFlow {
             SplsPrompts.askRadius(ctx, "Radius around you", SplsLocation.MIN_RADIUS, false, null, { radius ->
                 val loc = SplsLocation(SplsStore.newId(), name, SplsLocation.MODE_CIRCLE, fix.latitude, fix.longitude, radius, false, System.currentTimeMillis())
                 SplsStore.addLocation(ctx, loc)
-                begin(ctx, loc, done, canceled)
+                begin(ctx, loc, done, canceled, confirmReady = true)
             }, canceled, { radius -> SplsAreas.overlapMessage(ctx, fix.latitude, fix.longitude, radius, null) })
         }, canceled)
     }
@@ -163,7 +168,7 @@ object SplsFlow {
                 chosen = which
                 (dlg as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
             }
-            .setPositiveButton("Resume") { _, _ -> if (chosen >= 0) begin(ctx, open[chosen], done, canceled) }
+            .setPositiveButton("Resume") { _, _ -> if (chosen >= 0) begin(ctx, open[chosen], done, canceled, confirmReady = true) }
             .setNegativeButton(R.string.dialog_cancel) { _, _ -> canceled() }
             .setOnCancelListener { canceled() }
             .create()
