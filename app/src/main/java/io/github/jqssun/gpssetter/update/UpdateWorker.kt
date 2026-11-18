@@ -13,7 +13,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.R
 import io.github.jqssun.gpssetter.access.AccessActivity
 import io.github.jqssun.gpssetter.utils.PrefManager
 import java.util.concurrent.TimeUnit
