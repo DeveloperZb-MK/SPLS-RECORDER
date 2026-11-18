@@ -9,12 +9,12 @@ android {
     namespace 'com.splsrecorder.zb'
     compileSdk 34
     defaultConfig {
-        applicationId "com.splsrecorder.zb"
+        applicationId "com.khpalgps.splsrecorder"
         minSdk 27
         targetSdk 34
         versionCode 100
         versionName tagName
-        buildConfigField("String", "TAG_NAME", "\"${tagName}\"")
+        buildConfigField("String", "TAG_NAME", "\"\${tagName}\"")
     }
     splits {
         abi {
