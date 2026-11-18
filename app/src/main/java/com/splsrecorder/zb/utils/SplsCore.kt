@@ -9,9 +9,9 @@ object SplsBlocks {
     const val MIN_TOTAL = 500
 
     val LABELS = listOf(
-        "0 to <5 m", "5 to <10 m", "10 to <20 m", "20 to <30 m", "30 to <40 m", "40 to <50 m",
-        "50 to <60 m", "60 to <80 m", "80 to <100 m", "Exactly 100 m",
-        ">100 to <130 m", "130 m and above"
+        "1 to <5 m", "5 to <10 m", "10 to <20 m", "20 to <30 m", "30 to <40 m",
+        "40 to <50 m", "50 to <60 m", "60 to <80 m", "80 to <100 m",
+        "Exactly 100 m", ">100 to <130 m", "130 m and above"
     )
 
     // minimum samples per range; 0 = the range is optional
@@ -19,9 +19,9 @@ object SplsBlocks {
     private val GPS_MIN = intArrayOf(0, 0, 15, 15, 15, 0, 0, 0, 0, 0, 0, 0)
     private val FUSED_MIN = intArrayOf(10, 10, 15, 15, 15, 0, 0, 0, 0, 0, 0, 0)
 
-    /** Half-open ranges: 0 <= accuracy < 5.0 m; exact 5.0 m belongs to the next range. */
+    /** Half-open ranges: exactly 5.0 m belongs to "5 to <10 m". Below 1 m belongs to the first range. */
     fun index(acc: Double): Int = when {
-        acc >= 0.0 && acc < 5.0 -> 0
+        acc < 5.0 -> 0
         acc < 10.0 -> 1
         acc < 20.0 -> 2
         acc < 30.0 -> 3
@@ -36,11 +36,10 @@ object SplsBlocks {
     }
 
     /** Minimum samples for a range of a provider ("network", "gps" or "fused"); 0 = optional. */
-    fun minSamples(provider: String, bin: Int): Int = when (provider.lowercase()) {
+    fun minSamples(provider: String, bin: Int): Int = when (provider) {
         "network" -> NETWORK_MIN[bin]
         "gps" -> GPS_MIN[bin]
-        "fused" -> FUSED_MIN[bin]
-        else -> 0
+        else -> FUSED_MIN[bin]
     }
 
     /** A provider is complete with at least [MIN_TOTAL] records and every compulsory range filled. */
