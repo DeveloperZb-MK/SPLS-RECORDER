@@ -3,7 +3,7 @@ package io.github.jqssun.gpssetter.utils
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatDelegate
-import io.github.jqssun.gpssetter.BuildConfig
+import com.splsrecorder.zb.BuildConfig
 import io.github.jqssun.gpssetter.gsApp
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
