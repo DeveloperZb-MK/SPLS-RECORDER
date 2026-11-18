@@ -27,11 +27,9 @@ import io.github.jqssun.gpssetter.spls.SplsProviders
 import io.github.jqssun.gpssetter.spls.SplsRecorderService
 import io.github.jqssun.gpssetter.spls.SplsSession
 import io.github.jqssun.gpssetter.spls.SplsStore
-import io.github.jqssun.gpssetter.utils.PrefKeys as K
-import io.github.jqssun.gpssetter.utils.PrefManager
 import io.github.jqssun.gpssetter.utils.SplsBlocks
 
-/** Pop-up of the Smart Provider Learning System: recording, learned behaviour deployment and the recorded data. */
+/** Pop-up of the Smart Provider Learning System: recording and recorded data. */
 object SplsDialog {
 
     private const val NOTICE_MS = 5000L
@@ -40,7 +38,6 @@ object SplsDialog {
     fun show(ctx: Context, controller: SplsController, onPickArea: (() -> Unit)? = null, onChanged: (() -> Unit)? = null) {
         val view = LayoutInflater.from(ctx).inflate(R.layout.dialog_spls, null)
         val sw = view.findViewById<MaterialSwitch>(R.id.spls_switch)
-        val deploySwitch = view.findViewById<MaterialSwitch>(R.id.spls_deploy_switch)
         val notice = view.findViewById<TextView>(R.id.spls_notice)
         val providers = view.findViewById<LinearLayout>(R.id.spls_providers)
         val search = view.findViewById<EditText>(R.id.spls_search)
@@ -55,9 +52,7 @@ object SplsDialog {
 
         // the two lists scroll inside their cards when they are long
         val listA = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-        val listB = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
         view.findViewById<FrameLayout>(R.id.spls_list_a_holder).addView(SplsListUi.capped(ctx, listA, 270))
-        view.findViewById<FrameLayout>(R.id.spls_list_b_holder).addView(SplsListUi.capped(ctx, listB, 270))
 
         // one short message at a time, visible for 5 seconds, then it disappears
         val hide = Runnable { notice.visibility = View.GONE }
@@ -143,7 +138,7 @@ object SplsDialog {
                         input.error = "Enter a whole number of 1 or more, or tap No limit."
                     } else {
                         // Validate only against the current recording. Never combine
-                        // samples from other records or from learned-behaviour deployment.
+                        // samples from other records.
                         val recording = if (SplsSession.isOn()) SplsSession.active(ctx) else null
                         val existing = recording?.let { SplsStore.providerCount(ctx, it.id, key) } ?: 0
                         if (v < existing) {
@@ -359,16 +354,11 @@ object SplsDialog {
             stop = { l -> SplsActions.stop(ctx, l, { say(it) }, { refreshAll() }) },
             changed = { refreshAll() }
         )
-        val deployHooks = SplsListUi.DeployHooks(say = { say(it) }, changed = { refreshAll() })
 
         fun refreshLists() {
             val q = search.text?.toString().orEmpty()
             SplsListUi.fillRecords(ctx, listA, q, recordHooks)
-            val deployOn = PrefManager.getRaw(K.SPLS_SELECT_ON) == "true"
-            view.findViewById<View>(R.id.spls_list_b_holder).visibility = if (deployOn) View.VISIBLE else View.GONE
-            if (deployOn) SplsListUi.fillDeploy(ctx, listB, q, deployHooks)
             guard = true
-            deploySwitch.isChecked = deployOn
             sw.isChecked = SplsSession.isFeatureEnabled()
             guard = false
         }
@@ -396,15 +386,6 @@ object SplsDialog {
         }
 
         controller.notifier = { msg -> say(msg) }
-        // Learned Behaviour Deployment is on but no record is chosen: the switch turns itself off
-        fun autoOff() {
-            if (PrefManager.getRaw(K.SPLS_SELECT_ON) == "true" && SplsStore.deployedId(ctx) == null) {
-                PrefManager.setRaw(K.SPLS_SELECT_ON, null)
-                SplsStore.rebuild(ctx)
-            }
-        }
-        autoOff()
-
         dialog.setOnDismissListener {
             autoOff()
             onChanged?.invoke()
@@ -445,18 +426,6 @@ object SplsDialog {
                 say("Recording stopped. Start a record again with its play button.")
                 view.post { refreshAll() }
             }
-        }
-
-        deploySwitch.setOnCheckedChangeListener { _, on ->
-            if (guard) return@setOnCheckedChangeListener
-            if (on) {
-                PrefManager.setRaw(K.SPLS_SELECT_ON, "true")
-            } else {
-                PrefManager.setRaw(K.SPLS_SELECT_ON, null)
-                PrefManager.setRaw(K.SPLS_SELECTED_ID, null)
-            }
-            SplsStore.rebuild(ctx)
-            refreshAll()
         }
 
         view.findViewById<View>(R.id.spls_add).setOnClickListener {
