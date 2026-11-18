@@ -10,8 +10,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import io.github.jqssun.gpssetter.R
-
+import com.splsrecorder.zb.R
 /**
  * "SPLS Locations" on the map: the same record list as in the SPLS pop-up
  * (delete, stop, play / pause, menu with Rename and Change radius), active record on top.
