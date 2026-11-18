@@ -14,7 +14,7 @@ android {
         targetSdk 34
         versionCode 100
         versionName tagName
-        buildConfigField("String", "TAG_NAME", "\"\${tagName}\"")
+        buildConfigField("String", "TAG_NAME", "\"${tagName}\"")
     }
     splits {
         abi {
