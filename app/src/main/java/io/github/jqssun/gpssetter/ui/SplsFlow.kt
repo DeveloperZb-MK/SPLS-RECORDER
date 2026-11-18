@@ -11,7 +11,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.R
 import io.github.jqssun.gpssetter.spls.SplsAreas
 import io.github.jqssun.gpssetter.spls.SplsLocation
 import io.github.jqssun.gpssetter.spls.SplsSession
