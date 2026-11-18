@@ -98,7 +98,7 @@ class SplsRecorderService : Service() {
         nm.createNotificationChannel(NotificationChannel(CHANNEL, "Provider learning", NotificationManager.IMPORTANCE_LOW))
         val n: Notification = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_spls_notif)
-            .setContentTitle("KHPAL GPS is learning")
+            .setContentTitle("SPLS Recorder is recording")
             .setContentText("Recording how the location providers behave")
             .setOngoing(true)
             .build()
