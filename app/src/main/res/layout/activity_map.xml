@@ -91,6 +91,15 @@
             app:iconPadding="0dp"
             app:iconSize="32dp" />
         
+        <!-- Compatibility-only control retained for the legacy source set; the SPLS screen uses mapType. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/addfavorite"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            android:visibility="gone"
+            app:icon="@drawable/ic_map_type" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/mapType"
             style="@style/Widget.Material3.Button.TonalButton"
