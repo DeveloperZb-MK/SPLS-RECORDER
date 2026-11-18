@@ -216,7 +216,7 @@ object SplsDialog {
                     startNew = { loc ->
                         controller.enable { ok ->
                             if (ok) {
-                                SplsFlow.begin(ctx, loc, { if (dialog.isShowing) view.post { refreshAll() } }, { if (dialog.isShowing) view.post { refreshAll() } })
+                                SplsFlow.begin(ctx, loc, { if (dialog.isShowing) view.post { refreshAll() } }, { if (dialog.isShowing) view.post { refreshAll() } }, confirmReady = true)
                             } else if (dialog.isShowing) {
                                 view.post { refreshAll() }
                             }
