@@ -35,6 +35,7 @@ object SplsStore {
     private fun dateFmt() = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
     private fun runFmt() = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
     private fun plain(d: Double?): String = if (d == null) "" else BigDecimal.valueOf(d).toPlainString()
+    private fun r2(d: Double?): String = if (d == null) "" else String.format(Locale.US, "%.2f", d)
     private fun rowFile(ctx: Context, id: String) = File(ctx.filesDir, "spls_$id.csv")
 
     fun newId(): String = java.lang.Long.toString(System.currentTimeMillis(), 36) + java.lang.Integer.toString((Math.random() * 1679616).toInt(), 36)
@@ -47,7 +48,7 @@ object SplsStore {
             runFmt().format(d), dateFmt().format(d), r.provider,
             String.format(Locale.US, "%.8f", r.lat), String.format(Locale.US, "%.8f", r.lon),
             plain(r.hAcc), plain(r.netAcc), plain(r.vAcc), plain(r.alt), plain(r.msl), plain(r.speed),
-            plain(r.bearing), plain(r.bearingAcc), plain(r.jitter), plain(r.drift)
+            plain(r.bearing), plain(r.bearingAcc), r2(r.jitter), r2(r.drift)
         ).joinToString(",")
     }
 
