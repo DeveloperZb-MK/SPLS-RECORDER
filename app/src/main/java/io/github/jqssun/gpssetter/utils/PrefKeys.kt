@@ -76,9 +76,9 @@ object PrefKeys {
 
     // Retained only as legacy preference keys so upgrades do not invalidate older settings.
     // The Learned Behaviour Deployment feature and its UI are removed.
-    const NET_LEARNED = "network_accuracy_learned"
-    const GPS_LEARNED = "gps_accuracy_learned"
-    const FUSED_LEARNED = "fused_accuracy_learned"
+    const val NET_LEARNED = "network_accuracy_learned"
+    const val GPS_LEARNED = "gps_accuracy_learned"
+    const val FUSED_LEARNED = "fused_accuracy_learned"
 
     // bearing, bearing accuracy, position jitter, position drift
     const val BEARING_MODE = "bearing_mode_fixed" // "true" = Fixed tab; empty = Auto from movement
