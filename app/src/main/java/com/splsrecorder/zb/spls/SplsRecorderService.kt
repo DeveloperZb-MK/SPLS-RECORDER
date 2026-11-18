@@ -31,6 +31,7 @@ import com.splsrecorder.zb.R
 import com.splsrecorder.zb.utils.PrefKeys as K
 import com.splsrecorder.zb.utils.PrefManager
 import com.splsrecorder.zb.utils.SplsRow
+import com.splsrecorder.zb.spls.SplsProviders
 
 /**
  * Records the real behaviour of the three providers (gps, network, fused) in the background.
@@ -178,6 +179,8 @@ class SplsRecorderService : Service() {
         if (loc.isFromMockProvider) return
         val provider = loc.provider ?: return
         if (provider != "gps" && provider != "network" && provider != "fused") return
+        if (!SplsProviders.isRecording(provider)) return
+        if (SplsProviders.limitReached(provider, SplsStore.providerCount(applicationContext, target.id, provider))) return
         val now = SystemClock.elapsedRealtime()
         val h = loc.accuracy.toDouble()
         if (h <= 0.0) return
