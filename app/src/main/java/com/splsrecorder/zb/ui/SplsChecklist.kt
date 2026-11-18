@@ -24,7 +24,6 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.splsrecorder.zb.R
-import 
 import com.splsrecorder.zb.utils.PrefKeys as K
 import com.splsrecorder.zb.utils.PrefManager
 
