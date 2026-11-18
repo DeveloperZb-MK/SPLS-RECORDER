@@ -1,14 +1,14 @@
-name: Build SPLS Recorder
+name: Build SPLS Recorder (FOSS only)
 
 on:
   workflow_dispatch:
     inputs:
       publish_release:
-        description: 'Also publish the APK to GitHub Releases'
+        description: 'Also publish the APKs to GitHub Releases'
         type: boolean
         default: false
   push:
-    branches: [ main ]
+    branches: [ SPLS-RECORDER ]
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -19,19 +19,15 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
-      # Phone-friendly first upload: put the project .zip on the main page of the repository.
-      # It is unpacked into the repository once, then the zip is deleted.
       - name: Unpack project zip (first run only)
         run: |
           if [ ! -f gradlew ]; then
             ZIP=$(find . -name '*.zip' -not -path './.git/*' | head -n1)
             if [ -z "$ZIP" ]; then
-              echo "ERROR: no project files and no .zip found. Upload the project zip to the repository first."
+              echo "ERROR: no project files and no .zip found. Upload khpalGps.zip to the repository first."
               exit 1
             fi
             echo "Using $ZIP"
@@ -43,15 +39,13 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add -A -f
-            git commit -m "Add SPLS Recorder project files"
+            git commit -m "Add KHPAL GPS project files"
             git push
           fi
 
-      # Phone-friendly update: upload splsrec-update.zip to the main page of the repository.
-      # It is unpacked over the project once, then the zip is deleted. Without that file this step does nothing.
-      - name: Apply update zip (only when splsrec-update.zip is uploaded)
+      - name: Apply update zip
         run: |
-          ZIP=$(find . -name 'splsrec-update.zip' -not -path './.git/*' | head -n1)
+          ZIP=$(find . -name 'SPLS_Recorder-update.zip' -not -path './.git/*' | head -n1)
           if [ -n "$ZIP" ]; then
             echo "Using $ZIP"
             rm -rf /tmp/upd && mkdir -p /tmp/upd
@@ -62,20 +56,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add -A -f
-            git commit -m "Apply SPLS Recorder update"
-            git push
-          fi
-
-      # The package was renamed (com.khpalgps.splsrec -> com.splsrecorder.zb).
-      # If the old source folder is still in the repository, remove it so only the new one is built.
-      - name: Remove old package folder (after the package rename)
-        run: |
-          if [ -d app/src/main/java/com/splsrecorder ] && [ -d app/src/main/java/com/khpalgps ]; then
-            git rm -rq app/src/main/java/com/khpalgps
-            rm -rf app/src/main/java/com/khpalgps
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "Remove old package folder after the package rename"
+            git commit -m "Apply KHPAL GPS update"
             git push
           fi
 
@@ -86,12 +67,15 @@ jobs:
           cache: 'gradle'
 
       - name: Prepare
-        run: chmod +x ./gradlew
+        run: |
+          touch local.properties
+          echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}" >> local.properties
+          chmod +x ./gradlew
 
-      # With the keystore secrets the APK is a signed release build.
-      # Without them a debug-signed APK is built, which installs fine on any phone.
+      - name: Run SPLS accuracy self-checks
+        run: ./gradlew testFossDebugUnitTest --stacktrace
+
       - name: Decode Keystore
-        if: env.HAS_KEYSTORE == 'true'
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
           echo "KEYSTORE_FILE=${{ github.workspace }}/release.keystore" >> $GITHUB_ENV
@@ -99,40 +83,54 @@ jobs:
           echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Build release APK (signed)
-        if: env.HAS_KEYSTORE == 'true'
-        run: ./gradlew assembleRelease --stacktrace
+      - name: Build FOSS APK
+        run: ./gradlew assembleFossRelease --stacktrace
 
-      - name: Build debug APK (no keystore secrets set)
-        if: env.HAS_KEYSTORE != 'true'
-        run: ./gradlew assembleDebug --stacktrace
 
-      - name: Collect APK
+      - name: Collect APKs
         run: |
           mkdir -p out
           VER=$(grep "def tagName" app/build.gradle | sed -E "s/.*'([^']+)'.*/\1/")
-          for f in $(find app/build/outputs/apk -name '*.apk'); do
-            kind=$(echo "$f" | grep -o -E 'release|debug' | head -n1)
-            cp "$f" "out/SPLS-Recorder-${VER}-${kind}.apk"
-          done
+          echo "APP_VERSION=$VER" >> $GITHUB_ENV
+          find app/build/outputs/apk/foss -name '*.apk' -exec cp {} "out/SPLS-Recorder-${VER}-foss.apk" \;
           ls -la out
 
-      - name: Upload APK
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: SPLS-Recorder-apk
+          name: SPLS-Recorder-FOSS-apk
           path: out/*.apk
 
-      - name: Publish to GitHub Releases
+      # 1. PUBLISH APKs AND RELEASE NOTES TO THE PUBLIC REPO
+      - name: Publish Release to Public Repo
+        if: false
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: DeveloperZb-MK/khpalGps-releases
+          tag_name: v${{ env.APP_VERSION }}
+          name: KHPAL GPS ${{ env.APP_VERSION }}
+          body_path: RELEASE_NOTES.md
+          files: out/*.apk
+          token: ${{ secrets.CUSTOM_RELEASE_TOKEN }}
+
+      # 2. COPY README AND NOTICE TO THE PUBLIC REPO'S MAIN PAGE
+      - name: Copy README and NOTICE to Public Repo
         if: ${{ inputs.publish_release }}
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          VER=$(grep "def tagName" app/build.gradle | sed -E "s/.*'([^']+)'.*/\1/")
-          TAG="v${VER}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" out/*.apk --clobber
-          else
-            gh release create "$TAG" out/*.apk --title "SPLS Recorder ${VER}" \
-              --notes "SPLS Recorder ${VER}. Records how the Network, GPS and Fused location providers behave and exports the records as CSV."
-          fi
+          git clone https://x-access-token:${{ secrets.CUSTOM_RELEASE_TOKEN }}@github.com/DeveloperZb-MK/khpalGps-releases.git public-repo
+          
+          # Copy README
+          cp README.md public-repo/README.md
+          
+          # Copy NOTICE (checks for exact name or .txt version to be safe)
+          if [ -f NOTICE ]; then cp NOTICE public-repo/NOTICE; fi
+          if [ -f NOTICE.txt ]; then cp NOTICE.txt public-repo/NOTICE.txt; fi
+          
+          cd public-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          # The || exit 0 prevents an error if there are no changes to commit
+          git commit -m "Update README and NOTICE for version ${{ env.APP_VERSION }}" || exit 0
+          git push
+          
