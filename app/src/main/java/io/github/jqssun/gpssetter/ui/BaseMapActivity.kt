@@ -46,10 +46,10 @@ import io.github.jqssun.gpssetter.utils.PrefManager
 import com.google.android.material.elevation.ElevationOverlayProvider
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import dagger.hilt.android.AndroidEntryPoint
-import io.github.jqssun.gpssetter.BuildConfig
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.BuildConfig
+import com.splsrecorder.zb.R
 import io.github.jqssun.gpssetter.adapter.FavListAdapter
-import io.github.jqssun.gpssetter.databinding.ActivityMapBinding
+import com.splsrecorder.zb.databinding.ActivityMapBinding
 import io.github.jqssun.gpssetter.ui.viewmodel.MainViewModel
 import io.github.jqssun.gpssetter.utils.JoystickService
 import io.github.jqssun.gpssetter.access.AccessGuard
