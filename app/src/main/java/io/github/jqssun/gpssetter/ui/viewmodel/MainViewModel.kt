@@ -18,8 +18,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.github.jqssun.gpssetter.BuildConfig
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.BuildConfig
+import com.splsrecorder.zb.R
 import io.github.jqssun.gpssetter.repository.FavoriteRepository
 import io.github.jqssun.gpssetter.room.Favorite
 import io.github.jqssun.gpssetter.update.UpdateChecker
