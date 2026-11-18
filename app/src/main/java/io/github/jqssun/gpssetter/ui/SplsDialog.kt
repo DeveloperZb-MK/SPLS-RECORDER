@@ -287,17 +287,7 @@ object SplsDialog {
                     "Showing: ${recording.name} (${if (SplsSession.isPaused()) "paused" else "recording"})"
                 )
             } else {
-                Scope(
-                    SplsStore.Counts(
-                        0, 0, 0,
-                        mapOf(
-                            "gps" to IntArray(SplsBlocks.COUNT),
-                            "network" to IntArray(SplsBlocks.COUNT),
-                            "fused" to IntArray(SplsBlocks.COUNT)
-                        )
-                    ),
-                    "Showing: no active recording"
-                )
+                Scope(SplsStore.countsAll(ctx), "Showing: all records together")
             }
         }
 
@@ -311,6 +301,7 @@ object SplsDialog {
                 !on -> "Recording: off"
                 paused -> "Recording: paused$where"
                 PrefManager.isStarted -> "Recording: waiting, mocking is running$where"
+                PrefManager.isSystemHooked -> "Recording: waiting, Hook system location is on$where"
                 SplsRecorderService.running -> "Recording: running$where"
                 else -> "Recording: starting$where"
             }
