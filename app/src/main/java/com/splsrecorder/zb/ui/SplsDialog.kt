@@ -299,6 +299,14 @@ object SplsDialog {
         }
 
         view.findViewById<View>(R.id.spls_add).setOnClickListener {
+            if (!SplsSession.isFeatureEnabled()) {
+                MaterialAlertDialogBuilder(ctx)
+                    .setTitle("SPLS Recording is Off")
+                    .setMessage("Please enable SPLS recording first using the Enable SPLS Recording switch.")
+                    .setPositiveButton("OK", null)
+                    .show()
+                return@setOnClickListener
+            }
             if (SplsSession.isOn()) {
                 SplsRules.warnOtherRecordActive(ctx, null)
                 return@setOnClickListener
