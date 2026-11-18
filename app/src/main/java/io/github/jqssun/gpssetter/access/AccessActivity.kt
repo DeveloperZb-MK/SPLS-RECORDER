@@ -27,10 +27,10 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.material.textfield.TextInputLayout
-import io.github.jqssun.gpssetter.R
-import io.github.jqssun.gpssetter.databinding.ActivityAccessBinding
+import com.splsrecorder.zb.R
+import com.splsrecorder.zb.databinding.ActivityAccessBinding
 import io.github.jqssun.gpssetter.ui.MapActivity
-import io.github.jqssun.gpssetter.BuildConfig
+import com.splsrecorder.zb.BuildConfig
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
