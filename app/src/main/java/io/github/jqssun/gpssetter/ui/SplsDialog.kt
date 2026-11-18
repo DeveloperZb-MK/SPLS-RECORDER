@@ -138,10 +138,19 @@ object SplsDialog {
                     if (v == null || v < 1) {
                         input.error = "Enter a whole number of 1 or more, or tap No limit."
                     } else {
-                        // Validate only against the current recording. Never combine
-                        // samples from other records.
+                        // Match the Recording data scope: the active record, or all saved
+                        // records when no recording is active (deployment has been removed).
                         val recording = if (SplsSession.isOn()) SplsSession.active(ctx) else null
-                        val existing = recording?.let { SplsStore.providerCount(ctx, it.id, key) } ?: 0
+                        val existing = if (recording != null) {
+                            SplsStore.providerCount(ctx, recording.id, key)
+                        } else {
+                            val all = SplsStore.countsAll(ctx)
+                            when (key) {
+                                "gps" -> all.gps
+                                "network" -> all.network
+                                else -> all.fused
+                            }
+                        }
                         if (v < existing) {
                             MaterialAlertDialogBuilder(ctx)
                                 .setTitle("Maximum is below existing records")
