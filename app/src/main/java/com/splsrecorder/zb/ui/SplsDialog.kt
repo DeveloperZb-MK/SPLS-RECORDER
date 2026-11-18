@@ -3,6 +3,7 @@ package com.splsrecorder.zb.ui
 import android.content.Context
 import android.graphics.Color
 import android.text.Editable
+import android.text.InputType
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -16,6 +17,7 @@ import android.widget.LinearLayout
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -23,6 +25,7 @@ import com.splsrecorder.zb.R
 import com.splsrecorder.zb.spls.SplsRecorderService
 import com.splsrecorder.zb.spls.SplsSession
 import com.splsrecorder.zb.spls.SplsStore
+import com.splsrecorder.zb.spls.SplsProviders
 import com.splsrecorder.zb.utils.SplsBlocks
 
 /** Pop-up of the Smart Provider Learning System: recording, the record list and the recorded data. */
@@ -110,6 +113,131 @@ object SplsDialog {
             }
         }
 
+        // Per-provider maximum records. The other providers continue when one reaches its cap.
+        fun askMax(key: String) {
+            val input = EditText(ctx).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                hint = "Maximum records"
+                val m = SplsProviders.max(key)
+                if (m > 0) setText(m.toString())
+                setSelection(text?.length ?: 0)
+            }
+            val box = FrameLayout(ctx).apply { setPadding(dp(24), dp(8), dp(24), 0); addView(input) }
+            val d = MaterialAlertDialogBuilder(ctx)
+                .setTitle("${SplsProviders.label(key)}: maximum records")
+                .setMessage("When this provider reaches the maximum, only this provider stops recording. The others go on.")
+                .setView(box)
+                .setPositiveButton("Set", null)
+                .setNeutralButton("No limit") { _, _ ->
+                    SplsProviders.setMax(key, 0)
+                    say("${SplsProviders.label(key)}: no limit.")
+                    redrawData()
+                }
+                .setNegativeButton(R.string.dialog_cancel, null)
+                .create()
+            d.setOnShowListener {
+                d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val value = input.text?.toString().orEmpty().trim().toIntOrNull()
+                    if (value == null || value < 1) {
+                        input.error = "Enter a whole number of 1 or more, or tap No limit."
+                    } else {
+                        val recording = if (SplsSession.isOn()) SplsSession.active(ctx) else null
+                        val existing = if (recording != null) {
+                            SplsStore.providerCount(ctx, recording.id, key)
+                        } else {
+                            val all = SplsStore.counts(ctx)
+                            when (key) {
+                                "gps" -> all.gps
+                                "network" -> all.network
+                                else -> all.fused
+                            }
+                        }
+                        if (value < existing) {
+                            MaterialAlertDialogBuilder(ctx)
+                                .setTitle("Maximum is below existing records")
+                                .setMessage(
+                                    "${SplsProviders.label(key)} already has $existing records in the current recording-data scope. " +
+                                        "The maximum cannot be set to $value because it is lower than the number of records already saved. " +
+                                        "Enter $existing or a higher value."
+                                )
+                                .setPositiveButton("OK", null)
+                                .show()
+                        } else {
+                            SplsProviders.setMax(key, value)
+                            d.dismiss()
+                            say("${SplsProviders.label(key)}: maximum set to $value records.")
+                            redrawData()
+                        }
+                    }
+                }
+            }
+            d.show()
+        }
+
+        // Pause/resume/stop a provider independently; its sibling providers continue recording.
+        fun controlRow(key: String): View {
+            val on = SplsSession.isOn()
+            val state = SplsProviders.state(key)
+            val total = when (key) {
+                "gps" -> scope().counts.gps
+                "network" -> scope().counts.network
+                else -> scope().counts.fused
+            }
+            val reached = SplsProviders.limitReached(key, total)
+            val status = when {
+                !on -> "Not recording"
+                reached -> "Limit reached"
+                state == SplsProviders.PAUSED -> "Paused"
+                state == SplsProviders.STOPPED -> "Stopped"
+                else -> "Recording"
+            }
+            val row = LinearLayout(ctx).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, 0, 0, dp(6))
+            }
+            row.addView(TextView(ctx).apply {
+                text = status
+                textSize = 12.5f
+                alpha = 0.8f
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            fun small(label: String, enabled: Boolean, onClick: () -> Unit) {
+                val b = MaterialButton(ctx, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                    text = label
+                    textSize = 12f
+                    isAllCaps = false
+                    minWidth = 0
+                    minimumWidth = 0
+                    minHeight = 0
+                    minimumHeight = 0
+                    insetTop = 0
+                    insetBottom = 0
+                    setPadding(dp(10), 0, dp(10), 0)
+                    isEnabled = enabled
+                    setOnClickListener { onClick() }
+                }
+                row.addView(b, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32)).apply { marginStart = dp(6) })
+            }
+            small(if (state == SplsProviders.RECORDING) "Pause" else "Resume", on && !reached) {
+                if (state == SplsProviders.RECORDING) {
+                    SplsProviders.setState(key, SplsProviders.PAUSED)
+                    say("${SplsProviders.label(key)} paused. The other providers go on recording.")
+                } else {
+                    SplsProviders.setState(key, SplsProviders.RECORDING)
+                    say("${SplsProviders.label(key)} resumed.")
+                }
+                redrawData()
+            }
+            small("Stop", on && state != SplsProviders.STOPPED) {
+                SplsProviders.setState(key, SplsProviders.STOPPED)
+                say("${SplsProviders.label(key)} stopped. Tap Resume to record it again.")
+                redrawData()
+            }
+            val maximum = SplsProviders.max(key)
+            small(if (maximum > 0) "Max $maximum" else "Max: none", true) { askMax(key) }
+            return row
+        }
+
         fun buildProvider(key: String, title: String, total: Int, bins: IntArray) {
             val complete = SplsBlocks.isComplete(key, total, bins)
             val open = expanded.contains(key)
@@ -150,6 +278,7 @@ object SplsDialog {
             })
 
             providers.addView(header)
+            providers.addView(controlRow(key))
             if (open) providers.addView(buildTable(key, total, bins))
             header.setOnClickListener {
                 if (!expanded.add(key)) expanded.remove(key)
