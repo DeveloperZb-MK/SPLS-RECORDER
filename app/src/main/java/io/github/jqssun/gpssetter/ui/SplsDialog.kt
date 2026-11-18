@@ -438,6 +438,14 @@ object SplsDialog {
         }
 
         view.findViewById<View>(R.id.spls_add).setOnClickListener {
+            if (!SplsSession.isFeatureEnabled()) {
+                MaterialAlertDialogBuilder(ctx)
+                    .setTitle("SPLS Recording is Off")
+                    .setMessage("Please enable SPLS recording first using the Enable SPLS Recording switch.")
+                    .setPositiveButton("OK", null)
+                    .show()
+                return@setOnClickListener
+            }
             // A paused record retains its data and auto-resume eligibility, but does not
             // occupy the single recording slot. Only block adding a record while one is running.
             if (SplsSession.isOn() && !SplsSession.isPaused()) {
