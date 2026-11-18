@@ -8,7 +8,7 @@ import android.graphics.PixelFormat
 import android.os.IBinder
 import android.view.*
 import io.github.controlwear.virtual.joystick.android.JoystickView
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.R
 import kotlin.math.cos
 import kotlin.math.sin
 
