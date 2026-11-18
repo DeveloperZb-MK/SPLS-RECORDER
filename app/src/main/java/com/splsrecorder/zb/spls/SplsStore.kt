@@ -239,6 +239,10 @@ object SplsStore {
     fun counts(ctx: Context): Counts = synchronized(lock) { countsOf(effectiveRows(ctx)) }
 
     fun countsOfLocation(ctx: Context, id: String): Counts = synchronized(lock) { countsOf(rowsOf(ctx, id)) }
+    fun providerCount(ctx: Context, id: String, provider: String): Int = synchronized(lock) {
+        countOf(rowsOf(ctx, id), provider)
+    }
+
 
     private fun countsOf(list: List<SplsRow>): Counts {
         val bins = mapOf("gps" to IntArray(SplsBlocks.COUNT), "network" to IntArray(SplsBlocks.COUNT), "fused" to IntArray(SplsBlocks.COUNT))
