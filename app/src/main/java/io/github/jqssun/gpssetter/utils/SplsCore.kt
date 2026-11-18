@@ -26,7 +26,7 @@ object SplsBlocks {
 
     /** Half-open ranges: 0 <= accuracy < 5.0 m is the first range; exactly 5.0 m belongs to "5 to <10 m". */
     fun index(acc: Double): Int = when {
-        acc < 5.0 -> 0
+        acc >= 0.0 && acc < 5.0 -> 0
         acc < 10.0 -> 1
         acc < 20.0 -> 2
         acc < 30.0 -> 3
