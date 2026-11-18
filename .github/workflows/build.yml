@@ -69,66 +69,35 @@ jobs:
       - name: Prepare
         run: |
           touch local.properties
-          echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}" >> local.properties
           chmod +x ./gradlew
 
+      # FOSS debug build: always debug-signed; no release keystore is read or used.
+      - name: Build FOSS debug APK
+        run: ./gradlew assembleFossDebug --stacktrace
 
-      - name: Decode Keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
-          echo "KEYSTORE_FILE=${{ github.workspace }}/release.keystore" >> $GITHUB_ENV
-          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-
-      - name: Build FOSS APK
-        run: ./gradlew assembleFossRelease --stacktrace
-
-
-      - name: Collect APKs
+      - name: Collect APK
         run: |
           mkdir -p out
-          VER=$(grep "def tagName" app/build.gradle | sed -E "s/.*'([^']+)'.*/\1/")
+          VER=$(grep "def tagName" app/build.gradle | sed -E "s/.*'([^']+)'.*/\\1/")
           echo "APP_VERSION=$VER" >> $GITHUB_ENV
-          find app/build/outputs/apk/foss -name '*.apk' -exec cp {} "out/SPLS-Recorder-${VER}-foss.apk" \;
+          find app/build/outputs/apk/foss/debug -name '*.apk' -exec cp {} "out/SPLS-Recorder-${VER}-debug.apk" \\;
+          test -s "out/SPLS-Recorder-${VER}-debug.apk"
           ls -la out
 
-      - name: Upload APKs
+      - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SPLS-Recorder-FOSS-apk
+          name: SPLS-Recorder-debug-apk
           path: out/*.apk
 
-      # 1. PUBLISH APKs AND RELEASE NOTES TO THE PUBLIC REPO
-      - name: Publish Release to Public Repo
-        if: false
+      - name: Publish debug APK to GitHub Release
+        if: ${{ inputs.publish_release }}
         uses: softprops/action-gh-release@v2
         with:
-          repository: DeveloperZb-MK/khpalGps-releases
           tag_name: v${{ env.APP_VERSION }}
-          name: KHPAL GPS ${{ env.APP_VERSION }}
-          body_path: RELEASE_NOTES.md
+          name: SPLS Recorder ${{ env.APP_VERSION }} (Debug)
+          body: |
+            Debug-signed FOSS build of SPLS Recorder.
+            This APK is signed with the standard Android debug key and is intended for testing.
           files: out/*.apk
-          token: ${{ secrets.CUSTOM_RELEASE_TOKEN }}
 
-      # 2. COPY README AND NOTICE TO THE PUBLIC REPO'S MAIN PAGE 
-      - name: Copy README and NOTICE to Public Repo
-        if: ${{ inputs.publish_release }}
-        run: |
-          git clone https://x-access-token:${{ secrets.CUSTOM_RELEASE_TOKEN }}@github.com/DeveloperZb-MK/khpalGps-releases.git public-repo
-          
-          # Copy README
-          cp README.md public-repo/README.md
-          
-          # Copy NOTICE (checks for exact name or .txt version to be safe)
-          if [ -f NOTICE ]; then cp NOTICE public-repo/NOTICE; fi
-          if [ -f NOTICE.txt ]; then cp NOTICE.txt public-repo/NOTICE.txt; fi
-          
-          cd public-repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          # The || exit 0 prevents an error if there are no changes to commit
-          git commit -m "Update README and NOTICE for version ${{ env.APP_VERSION }}" || exit 0
-          git push
-          
