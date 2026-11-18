@@ -5,12 +5,16 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.PowerManager
+import android.widget.CheckBox
+import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.splsrecorder.zb.spls.SplsLocation
 import com.splsrecorder.zb.spls.SplsSession
 import com.splsrecorder.zb.spls.SplsStore
 import com.splsrecorder.zb.utils.SplsBlocks
+import com.splsrecorder.zb.utils.PrefKeys as K
+import com.splsrecorder.zb.utils.PrefManager
 
 /** The rules of the SPLS lists: what a record may do, and the warnings shown when a rule blocks an action. */
 object SplsRules {
@@ -86,16 +90,31 @@ object SplsActions {
                 val blockers = SplsGuard.blockers()
                 if (blockers.isNotEmpty()) {
                     SplsGuard.showStopFirst(ctx, blockers)
-                    say("Something is blocking the recording.")
+                    say("Switch off the active hook or mocking first.")
+                    changed()
                 } else {
-                    SplsSession.resume()
-                    say("Recording resumed.")
+                    SplsChecklist.show(
+                        ctx,
+                        onReady = {
+                            val currentBlockers = SplsGuard.blockers()
+                            if (currentBlockers.isNotEmpty()) {
+                                SplsGuard.showStopFirst(ctx, currentBlockers)
+                                say("Switch off the active hook or mocking first.")
+                            } else {
+                                SplsSession.resume()
+                                say("Recording resumed.")
+                            }
+                            changed()
+                        },
+                        onCancel = { changed() },
+                        confirmReady = true
+                    )
                 }
             } else {
                 SplsSession.pause()
-                say("Recording paused. Tap play to continue.")
+                say("Recording paused. You can use mocking now. Tap play to continue.")
+                changed()
             }
-            changed()
             return
         }
         if (SplsSession.isOn()) {
