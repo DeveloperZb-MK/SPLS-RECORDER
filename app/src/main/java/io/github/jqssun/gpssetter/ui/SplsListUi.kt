@@ -26,7 +26,7 @@ import io.github.jqssun.gpssetter.spls.SplsSession
 import io.github.jqssun.gpssetter.spls.SplsStore
 
 /**
- * The record rows used in the SPLS pop-up (record list and deployment list) and in the map's SPLS Locations.
+ * The record rows used in the SPLS pop-up and in the map's SPLS Locations.
  * The number in front of a name is the number shown on the map marker. The active record is moved to the top.
  */
 object SplsListUi {
@@ -90,10 +90,6 @@ object SplsListUi {
         val changed: () -> Unit
     )
 
-    class DeployHooks(
-        val say: (String) -> Unit,
-        val changed: () -> Unit
-    )
 
     private fun dpOf(ctx: Context, v: Int) = (v * ctx.resources.displayMetrics.density).toInt()
 
@@ -276,51 +272,6 @@ object SplsListUi {
 
         card.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
         popup.showAsDropDown(anchor, -card.measuredWidth + dpOf(ctx, 40), -dpOf(ctx, 40))
-    }
-
-    // ------------------------------------------------------------ deployment list: Activate / Deactivate
-
-    fun fillDeploy(ctx: Context, layout: LinearLayout, query: String, h: DeployHooks) {
-        layout.removeAllViews()
-        val deployed = SplsRules.deployed(ctx)
-        val list = numbered(ctx, query, deployed?.id)
-        if (list.isEmpty()) {
-            layout.addView(
-                empty(
-                    ctx,
-                    if (query.isBlank()) "No learned records yet. Make a record first, then activate it here." else "No record matches your search."
-                )
-            )
-            return
-        }
-        for ((serial, l) in list) {
-            val on = deployed?.id == l.id
-            val line = rowContainer(ctx, on)
-            line.setPadding(dpOf(ctx, 12), dpOf(ctx, 8), dpOf(ctx, 8), dpOf(ctx, 8))
-            line.addView(serialView(ctx, serial), LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = dpOf(ctx, 6) })
-            val complete = SplsRules.dataComplete(ctx, l.id)
-            val sub = "${SplsStore.rowCount(ctx, l.id)} records - " + if (complete) "Complete" else "Incomplete"
-            line.addView(nameAndSubtitle(ctx, l, sub), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-
-            val button = (if (on) MaterialButton(ctx) else MaterialButton(ctx, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)).apply {
-                text = if (on) "Deactivate" else "Activate"
-                textSize = 12.5f
-                minWidth = 0
-                minimumWidth = 0
-                minHeight = 0
-                minimumHeight = 0
-                insetTop = 0
-                insetBottom = 0
-                setPadding(dpOf(ctx, 12), 0, dpOf(ctx, 12), 0)
-                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dpOf(ctx, 36)).apply { marginStart = dpOf(ctx, 8) }
-                setOnClickListener {
-                    if (on) SplsActions.deactivate(ctx, l, h.say, h.changed)
-                    else SplsActions.activate(ctx, l, h.say, h.changed)
-                }
-            }
-            line.addView(button)
-            layout.addView(line)
-        }
     }
 
     /** Updates the text under each name in place (so a running recording shows its count without rebuilding the list). */
