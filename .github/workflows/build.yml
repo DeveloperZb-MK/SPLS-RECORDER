@@ -8,7 +8,7 @@ on:
         type: boolean
         default: false
   push:
-    branches: [ SPLS-RECORDER ]
+    branches: [ main ]
     paths-ignore:
       - '**.md'
       - 'docs/**'
