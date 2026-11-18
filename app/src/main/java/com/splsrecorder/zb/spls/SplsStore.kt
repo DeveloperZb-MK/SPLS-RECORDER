@@ -25,8 +25,6 @@ object SplsStore {
     private const val REGISTRY = "spls_locations.json"
     private const val OLD_FILE = "spls_records.csv"
     private const val HEADER = "run_id,datetime,provider,latitude,longitude,horizontal_acc,network_acc,vertical_acc,altitude_wgs84,altitude_msl,speed,bearing,bearing_acc,jitter_m,drift_m"
-    private const val MAX_PER_PROVIDER = 6000
-    private const val MAX_PER_BLOCK = 500
     private const val REBUILD_EVERY = 25
 
     private val lock = Any()
@@ -262,13 +260,6 @@ object SplsStore {
     fun append(ctx: Context, id: String, r: SplsRow): Boolean = synchronized(lock) {
         val list = rowsOf(ctx, id)
         
-        // Check total provider limit (6000)
-        if (countOf(list, r.provider) >= MAX_PER_PROVIDER) return false
-        
-        // Check specific block limit (500)
-        val blockIndex = SplsBlocks.index(r.hAcc)
-        if (list.count { it.provider == r.provider && SplsBlocks.index(it.hAcc) == blockIndex } >= MAX_PER_BLOCK) return false
-
         list.add(r)
         val f = rowFile(ctx, id)
         val fresh = !f.exists() || f.length() == 0L
@@ -308,19 +299,6 @@ object SplsStore {
 
                 val r = parseLine(line)
                 if (r == null || !known.add(key(r))) {
-                    skipped++
-                    continue
-                }
-                
-                // Check total provider limit (6000)
-                if (countOf(rows, r.provider) >= MAX_PER_PROVIDER) {
-                    skipped++
-                    continue
-                }
-                
-                // Check specific block limit (500)
-                val blockIndex = SplsBlocks.index(r.hAcc)
-                if (rows.count { it.provider == r.provider && SplsBlocks.index(it.hAcc) == blockIndex } >= MAX_PER_BLOCK) {
                     skipped++
                     continue
                 }
