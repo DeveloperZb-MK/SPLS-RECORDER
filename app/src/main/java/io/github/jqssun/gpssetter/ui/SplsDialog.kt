@@ -1,7 +1,10 @@
 package io.github.jqssun.gpssetter.ui
 
 import android.app.Activity
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.text.Editable
 import android.text.InputType
@@ -19,6 +22,7 @@ import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -375,6 +379,19 @@ object SplsDialog {
             onChanged?.invoke()
         }
 
+        // Area changes are broadcast by the recorder so the open pop-up refreshes immediately.
+        val areaChangeReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (dialog.isShowing) refreshAll()
+            }
+        }
+        ContextCompat.registerReceiver(
+            ctx,
+            areaChangeReceiver,
+            IntentFilter(SplsRecorderService.ACTION_AREA_SESSION_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+
         // numbers and counts follow a running recording without rebuilding the lists
         val tick = object : Runnable {
             override fun run() {
@@ -395,6 +412,7 @@ object SplsDialog {
             }
             onChanged?.invoke()
             controller.notifier = null
+            runCatching { ctx.unregisterReceiver(areaChangeReceiver) }
             notice.removeCallbacks(hide)
             view.removeCallbacks(tick)
         }
