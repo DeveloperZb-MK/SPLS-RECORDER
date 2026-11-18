@@ -6,27 +6,29 @@ package com.splsrecorder.zb.utils
  */
 object SplsBlocks {
     const val COUNT = 12
-    const val MIN_TOTAL = 300
+    const val MIN_TOTAL = 500
 
     val LABELS = listOf(
-        "0 to 5 m", "5 to 10 m", "10 to 20 m", "20 to 30 m", "30 to 40 m", "40 to 50 m",
-        "50 to 60 m", "60 to 80 m", "80 to under 100 m", "Exactly 100 m",
-        "Over 100 to under 130 m", "130 m and over"
+        "0 to <5 m", "5 to <10 m", "10 to <20 m", "20 to <30 m", "30 to <40 m", "40 to <50 m",
+        "50 to <60 m", "60 to <80 m", "80 to <100 m", "Exactly 100 m",
+        ">100 to <130 m", "130 m and above"
     )
 
     // minimum samples per range; 0 = the range is optional
-    private val NETWORK_MIN = intArrayOf(10, 10, 15, 15, 15, 15, 15, 15, 15, 10, 10, 10)
-    private val OTHER_MIN = intArrayOf(10, 10, 15, 15, 15, 0, 0, 0, 0, 0, 0, 0)
+    private val NETWORK_MIN = intArrayOf(0, 0, 15, 15, 15, 15, 15, 15, 0, 0, 0, 0)
+    private val GPS_MIN = intArrayOf(0, 0, 15, 15, 15, 0, 0, 0, 0, 0, 0, 0)
+    private val FUSED_MIN = intArrayOf(10, 10, 15, 15, 15, 0, 0, 0, 0, 0, 0, 0)
 
+    /** Half-open ranges: 0 <= accuracy < 5.0 m; exact 5.0 m belongs to the next range. */
     fun index(acc: Double): Int = when {
-        acc <= 5.0 -> 0
-        acc <= 10.0 -> 1
-        acc <= 20.0 -> 2
-        acc <= 30.0 -> 3
-        acc <= 40.0 -> 4
-        acc <= 50.0 -> 5
-        acc <= 60.0 -> 6
-        acc <= 80.0 -> 7
+        acc >= 0.0 && acc < 5.0 -> 0
+        acc < 10.0 -> 1
+        acc < 20.0 -> 2
+        acc < 30.0 -> 3
+        acc < 40.0 -> 4
+        acc < 50.0 -> 5
+        acc < 60.0 -> 6
+        acc < 80.0 -> 7
         acc < 100.0 -> 8
         acc == 100.0 -> 9
         acc < 130.0 -> 10
@@ -34,7 +36,12 @@ object SplsBlocks {
     }
 
     /** Minimum samples for a range of a provider ("network", "gps" or "fused"); 0 = optional. */
-    fun minSamples(provider: String, bin: Int): Int = if (provider == "network") NETWORK_MIN[bin] else OTHER_MIN[bin]
+    fun minSamples(provider: String, bin: Int): Int = when (provider.lowercase()) {
+        "network" -> NETWORK_MIN[bin]
+        "gps" -> GPS_MIN[bin]
+        "fused" -> FUSED_MIN[bin]
+        else -> 0
+    }
 
     /** A provider is complete with at least [MIN_TOTAL] records and every compulsory range filled. */
     fun isComplete(provider: String, total: Int, bins: IntArray): Boolean {
