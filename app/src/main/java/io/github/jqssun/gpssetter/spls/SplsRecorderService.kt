@@ -210,6 +210,7 @@ class SplsRecorderService : Service() {
             candidateSince = 0L
             if (now - outsideSince >= EXIT_CONFIRM_MS && SplsSession.isOn()) {
                 SplsSession.clearForAreaExit()
+                notifyAreaSessionChanged()
                 cachedLoc = null
                 cachedAt = 0L
                 lastPos.clear()
@@ -284,11 +285,17 @@ class SplsRecorderService : Service() {
             // No active session, or a paused session has now entered a saved area.
             SplsSession.autoStart(applicationContext, inside)
         }
+        notifyAreaSessionChanged()
         cachedLoc = inside
         cachedAt = now
         lastPos.clear()
         recent.clear()
         return inside
+    }
+
+    /** Notify any open SPLS screen that the active area session has changed. */
+    private fun notifyAreaSessionChanged() {
+        sendBroadcast(Intent(ACTION_AREA_SESSION_CHANGED).setPackage(packageName))
     }
 
     /** Existing per-provider sampling and persistence, shared by circle and continuous modes. */
@@ -365,6 +372,7 @@ class SplsRecorderService : Service() {
 
     companion object {
         @Volatile var running = false
+        const val ACTION_AREA_SESSION_CHANGED = "io.github.jqssun.gpssetter.SPLS_AREA_SESSION_CHANGED"
         private const val CHANNEL = "spls"
         private const val NOTIF_ID = 4711
         private const val EXIT_HYSTERESIS_M = 3.0
