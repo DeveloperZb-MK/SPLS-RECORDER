@@ -30,6 +30,9 @@ class SplsController(private val activity: ComponentActivity) {
     private var stage = 0
     private var asked = false
     private var settingsAsked = false
+    private var attemptActive = false
+    private val requestedStages = HashSet<Int>()
+    private var permissionDialog: androidx.appcompat.app.AlertDialog? = null
     private var finished: ((Boolean) -> Unit)? = null
     private var changed: (() -> Unit)? = null
     private var toastRef: Toast? = null
@@ -62,11 +65,26 @@ class SplsController(private val activity: ComponentActivity) {
 
     /** Checks and asks for everything SPLS needs, one step after the other. [done] gets true when all steps passed. */
     fun enable(done: (Boolean) -> Unit) {
+        permissionDialog?.setOnCancelListener(null)
+        permissionDialog?.dismiss()
+        permissionDialog = null
         finished = done
+        attemptActive = true
         stage = 0
         asked = false
         settingsAsked = false
         setupStep()
+    }
+
+    /** Cancels an unfinished permission attempt without affecting an existing recording. */
+    fun cancelEnable(): Boolean {
+        if (!attemptActive) return false
+        attemptActive = false
+        finished = null
+        permissionDialog?.setOnCancelListener(null)
+        permissionDialog?.dismiss()
+        permissionDialog = null
+        return true
     }
 
     private fun advance(next: Int) {
@@ -77,6 +95,10 @@ class SplsController(private val activity: ComponentActivity) {
 
     private fun end(ok: Boolean, message: String? = null) {
         if (message != null) say(message)
+        attemptActive = false
+        permissionDialog?.setOnCancelListener(null)
+        permissionDialog?.dismiss()
+        permissionDialog = null
         val f = finished
         finished = null
         f?.invoke(ok)
@@ -84,28 +106,85 @@ class SplsController(private val activity: ComponentActivity) {
 
     private fun granted(c: Context, p: String) = ContextCompat.checkSelfPermission(c, p) == PackageManager.PERMISSION_GRANTED
 
-    /** Explains the permission and opens the app's own settings page (always works, also after "don't ask again"). */
-    private fun settingsDialog(title: String, message: String, failText: String) {
-        val ctx: Context? = activity
-        val c = appCtx()
-        if (ctx == null || c == null) {
-            end(false)
+    private data class AccessRequirement(
+        val title: String,
+        val explanation: String,
+        val granted: Boolean
+    )
+
+    private fun storageUsable(c: Context): Boolean = runCatching {
+        val dir = c.filesDir
+        if (!(dir.exists() || dir.mkdirs()) || !dir.isDirectory || !dir.canRead() || !dir.canWrite()) {
+            false
+        } else {
+            val probe = java.io.File.createTempFile("spls_storage_check_", ".tmp", dir)
+            probe.delete()
+        }
+    }.getOrDefault(false)
+
+    /** Re-evaluates every required access; the summary contains only items still missing. */
+    private fun requirements(c: Context): List<AccessRequirement> {
+        val pm = c.getSystemService(Context.POWER_SERVICE) as PowerManager
+        return buildList {
+            add(AccessRequirement("Foreground location",
+                "Allows SPLS to obtain location updates while the app is in use.",
+                granted(c, Manifest.permission.ACCESS_FINE_LOCATION)))
+            if (Build.VERSION.SDK_INT >= 29) add(AccessRequirement(
+                "Background location (Allow all the time)",
+                "Allows SPLS to continue recording when the app is in the background or the screen is off.",
+                granted(c, Manifest.permission.ACCESS_BACKGROUND_LOCATION)))
+            if (Build.VERSION.SDK_INT >= 33) add(AccessRequirement(
+                "Notifications",
+                "Allows Android to show the ongoing recording notification and recording status.",
+                granted(c, Manifest.permission.POST_NOTIFICATIONS)))
+            add(AccessRequirement("Battery optimization exemption",
+                "Helps prevent Android from restricting or stopping long-running background recording.",
+                pm.isIgnoringBatteryOptimizations(c.packageName)))
+            add(AccessRequirement("Recording storage",
+                "The app must be able to create, read and update its private CSV recording files. This is a storage check, not an Android permission.",
+                storageUsable(c)))
+        }
+    }
+
+    private fun launchAppSettings() {
+        val c = appCtx() ?: run { end(false); return }
+        settingsLauncher.launch(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + c.packageName)))
+    }
+
+    /** Replaces the former one-permission-at-a-time failure pop-ups with one live summary. */
+    private fun showMissingSummary() {
+        if (!attemptActive) return
+        val c = appCtx() ?: run { end(false); return }
+        val missing = requirements(c).filterNot { it.granted }
+        if (missing.isEmpty()) {
+            advance(5)
+            setupStep()
             return
         }
-        MaterialAlertDialogBuilder(ctx)
-            .setTitle(title)
+        val message = missing.joinToString("\n\n") {
+            "✗ ${it.title}\n${it.explanation}"
+        } + "\n\nSPLS Recording will remain OFF until all requirements are satisfied."
+        permissionDialog?.setOnCancelListener(null)
+        permissionDialog = MaterialAlertDialogBuilder(activity)
+            .setTitle("SPLS Recording – Required Access")
             .setMessage(message)
-            .setPositiveButton("Open settings") { _, _ ->
-                settingsLauncher.launch(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + c.packageName)))
+            .setCancelable(true)
+            .setPositiveButton("Open Settings") { _, _ ->
+                permissionDialog = null
+                stage = 0
+                asked = false
+                settingsAsked = false
+                setupStep()
             }
-            .setNegativeButton("Cancel") { _, _ -> end(false, failText) }
-            .setOnCancelListener { end(false, failText) }
+            .setNegativeButton("Cancel") { _, _ -> end(false) }
+            .setOnCancelListener { end(false) }
             .show()
     }
 
     private fun setupStep() {
         val c = appCtx()
         val ctx: Context? = activity
+        if (!attemptActive) return
         if (c == null || ctx == null) {
             end(false)
             return
@@ -122,73 +201,55 @@ class SplsController(private val activity: ComponentActivity) {
                     end(false, "Switch off the active hook or mocking first.")
                     return
                 }
-                1 -> { // location (and notifications on Android 13+)
-                    val need = ArrayList<String>()
-                    if (!granted(c, Manifest.permission.ACCESS_FINE_LOCATION)) {
-                        need.add(Manifest.permission.ACCESS_FINE_LOCATION)
-                        need.add(Manifest.permission.ACCESS_COARSE_LOCATION)
-                    }
-                    if (Build.VERSION.SDK_INT >= 33 && !granted(c, Manifest.permission.POST_NOTIFICATIONS)) {
-                        need.add(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                    if (need.isEmpty()) {
-                        advance(2)
-                        continue
-                    }
+                1 -> { // foreground location
+                    if (granted(c, Manifest.permission.ACCESS_FINE_LOCATION)) { advance(2); continue }
                     if (!asked) {
                         asked = true
-                        permLauncher.launch(need.toTypedArray())
+                        val permission = Manifest.permission.ACCESS_FINE_LOCATION
+                        if (requestedStages.contains(1) && !activity.shouldShowRequestPermissionRationale(permission)) launchAppSettings()
+                        else { requestedStages.add(1); permLauncher.launch(arrayOf(permission, Manifest.permission.ACCESS_COARSE_LOCATION)) }
                         return
                     }
-                    if (!settingsAsked) {
-                        settingsAsked = true
-                        settingsDialog(
-                            "Allow location",
-                            "SPLS needs the location permission. Tap Open settings, then Permissions, then Location, and allow it.",
-                            "SPLS needs the location permission."
-                        )
-                        return
-                    }
-                    end(false, "SPLS needs the location permission.")
+                    showMissingSummary()
                     return
                 }
-                2 -> { // background activity: location "all the time"
-                    if (Build.VERSION.SDK_INT < 29 || granted(c, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-                        advance(3)
-                        continue
-                    }
+                2 -> { // background location is requested separately on modern Android
+                    if (Build.VERSION.SDK_INT < 29 || granted(c, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) { advance(3); continue }
                     if (!asked) {
                         asked = true
-                        bgLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                        val permission = Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                        if (requestedStages.contains(2) && !activity.shouldShowRequestPermissionRationale(permission)) launchAppSettings()
+                        else { requestedStages.add(2); bgLauncher.launch(permission) }
                         return
                     }
-                    if (!settingsAsked) {
-                        settingsAsked = true
-                        settingsDialog(
-                            "Allow location all the time",
-                            "SPLS records in the background, so location access must be set to \"Allow all the time\". " +
-                                "Tap Open settings, then Permissions, then Location, and choose Allow all the time.",
-                            "SPLS needs location access set to \"Allow all the time\"."
-                        )
-                        return
-                    }
-                    end(false, "SPLS needs location access set to \"Allow all the time\" so it can record in the background.")
+                    showMissingSummary()
                     return
                 }
-                3 -> { // unrestricted battery use
+                3 -> { // notifications are requested separately on Android 13+
+                    if (Build.VERSION.SDK_INT < 33 || granted(c, Manifest.permission.POST_NOTIFICATIONS)) { advance(4); continue }
+                    if (!asked) {
+                        asked = true
+                        val permission = Manifest.permission.POST_NOTIFICATIONS
+                        if (requestedStages.contains(3) && !activity.shouldShowRequestPermissionRationale(permission)) launchAppSettings()
+                        else { requestedStages.add(3); bgLauncher.launch(permission) }
+                        return
+                    }
+                    showMissingSummary()
+                    return
+                }
+                4 -> { // unrestricted battery use
                     val pm = c.getSystemService(Context.POWER_SERVICE) as PowerManager
-                    if (pm.isIgnoringBatteryOptimizations(c.packageName)) {
-                        advance(4)
-                        continue
-                    }
+                    if (pm.isIgnoringBatteryOptimizations(c.packageName)) { advance(5); continue }
                     if (!asked) {
                         asked = true
-                        batteryLauncher.launch(
-                            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + c.packageName))
-                        )
+                        batteryLauncher.launch(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + c.packageName)))
                         return
                     }
-                    end(false, "SPLS needs unrestricted battery usage for this app, otherwise Android stops the recording.")
+                    showMissingSummary()
+                    return
+                }
+                5 -> { // verify app-private CSV storage before allowing SPLS to turn on
+                    if (storageUsable(c)) end(true) else showMissingSummary()
                     return
                 }
                 else -> {
