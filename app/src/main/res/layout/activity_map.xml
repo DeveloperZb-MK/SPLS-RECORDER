@@ -1,25 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/container"
-    android:orientation="vertical"
     android:fitsSystemWindows="false">
 
     <RelativeLayout
         android:id="@+id/overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:visibility="gone"
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:layout_marginTop="24dp"
-            android:elevation="1dp"
-            app:navigationIcon="@drawable/ic_baseline_menu_24"/>
 
         <include
             android:id="@+id/search"
@@ -91,15 +81,6 @@
             app:iconPadding="0dp"
             app:iconSize="32dp" />
         
-        <!-- Compatibility-only control retained for the legacy source set; the SPLS screen uses mapType. -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/addfavorite"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="1dp"
-            android:layout_height="1dp"
-            android:visibility="gone"
-            app:icon="@drawable/ic_map_type" />
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/mapType"
             style="@style/Widget.Material3.Button.TonalButton"
@@ -166,14 +147,4 @@
 
     </RelativeLayout>
 
-    <com.google.android.material.navigation.NavigationView
-        android:visibility="gone"
-        android:id="@+id/nav_view"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"
-        app:headerLayout="@layout/drawer_header"
-        app:menu="@menu/main_menu">
-    </com.google.android.material.navigation.NavigationView>
-
-</androidx.drawerlayout.widget.DrawerLayout>
+</FrameLayout>

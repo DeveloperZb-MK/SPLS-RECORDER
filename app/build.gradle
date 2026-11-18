@@ -87,12 +87,11 @@ dependencies {
 
     // use microg (apache 2.0) and maplibre (bsd 2-clause)
     fossImplementation 'org.microg.gms:play-services-location:0.3.6.244735'
-    fossImplementation ('org.maplibre.gl:android-sdk:11.8.2')
+    implementation 'org.maplibre.gl:android-sdk:11.8.2'
     /* {
         exclude group: 'com.google.android.gms'
     } */
     fullImplementation 'com.google.android.gms:play-services-location:21.0.1'
-    fullImplementation 'com.google.android.gms:play-services-maps:18.1.0'
 
 
     implementation 'androidx.core:core-ktx:1.9.0'
@@ -101,7 +100,6 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.2.0-alpha05'
     implementation 'androidx.preference:preference:1.2.0'
     implementation 'androidx.datastore:datastore-preferences:1.0.0'
-    implementation "androidx.drawerlayout:drawerlayout:1.2.0-alpha01"
     implementation 'androidx.room:room-runtime:2.5.0'
     implementation 'androidx.room:room-ktx:2.5.0'
     ksp 'androidx.room:room-compiler:2.5.0'
