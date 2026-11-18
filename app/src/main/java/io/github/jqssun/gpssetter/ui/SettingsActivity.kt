@@ -27,8 +27,8 @@ import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceDataStore
 import androidx.preference.PreferenceFragmentCompat
-import io.github.jqssun.gpssetter.R
-import io.github.jqssun.gpssetter.databinding.ActivitySettingsBinding
+import com.splsrecorder.zb.R
+import com.splsrecorder.zb.databinding.ActivitySettingsBinding
 import io.github.jqssun.gpssetter.utils.JoystickService
 import io.github.jqssun.gpssetter.utils.PrefManager
 import io.github.jqssun.gpssetter.utils.ext.showToast
