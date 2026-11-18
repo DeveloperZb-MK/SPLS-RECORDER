@@ -22,7 +22,7 @@ import androidx.appcompat.app.AlertDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
-import io.github.jqssun.gpssetter.R
+import com.splsrecorder.zb.R
 import io.github.jqssun.gpssetter.spls.SplsProviders
 import io.github.jqssun.gpssetter.spls.SplsRecorderService
 import io.github.jqssun.gpssetter.spls.SplsSession
