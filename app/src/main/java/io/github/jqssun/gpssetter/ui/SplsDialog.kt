@@ -393,7 +393,6 @@ object SplsDialog {
                 SplsSession.setFeatureEnabled(false)
                 switchEnablePending = false
             }
-            autoOff()
             onChanged?.invoke()
             controller.notifier = null
             notice.removeCallbacks(hide)
