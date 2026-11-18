@@ -18,7 +18,7 @@ data class SplsLocation(
     companion object {
         const val MODE_CONTINUOUS = "continuous"
         const val MODE_CIRCLE = "circle"
-        const val MIN_RADIUS = 10.0
+        const val MIN_RADIUS = 1.5
         const val MAX_RADIUS = 10000.0
     }
 }
