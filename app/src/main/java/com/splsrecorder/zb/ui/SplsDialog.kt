@@ -438,7 +438,10 @@ object SplsDialog {
                     .show()
                 return@setOnClickListener
             }
-            if (SplsSession.isOn()) {
+            // A running record must be paused or stopped before another one can start.
+            // A paused record does not block the + flow; starting the new record replaces
+            // the current active session only after the user chooses one of the three paths.
+            if (SplsSession.isOn() && !SplsSession.isPaused()) {
                 SplsRules.warnOtherRecordActive(ctx, null)
                 return@setOnClickListener
             }
