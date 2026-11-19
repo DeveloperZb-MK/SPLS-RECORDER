@@ -387,8 +387,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
                 clearPreview()
                 drawSplsCircles(true)
                 startAfterPick(loc)
-            }, { exitPick() }, { radius -> SplsAreas.overlapMessage(this, lat, lon, radius, null) }, { exitPick() })
-        })
+            }, { exitPick() }, { radius -> SplsAreas.overlapMessage(this, lat, lon, radius, null) })
+        }, { exitPick() })
     }
 
     private fun startAfterPick(loc: SplsLocation) {
