@@ -20,7 +20,8 @@ import com.splsrecorder.zb.utils.PrefManager
 object SplsRules {
 
     /** True when the record is the one SPLS is recording into (running or paused). */
-    fun isActive(l: SplsLocation): Boolean = SplsSession.isOn() && SplsSession.activeId() == l.id
+    fun isActive(l: SplsLocation): Boolean =
+        (SplsSession.isOn() && SplsSession.activeId() == l.id) || SplsSession.isPaused(l.id)
 
     /** All three providers have their records and every compulsory accuracy block is filled. */
     fun dataComplete(ctx: Context, id: String): Boolean {
