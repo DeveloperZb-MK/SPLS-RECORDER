@@ -12,7 +12,11 @@ object SplsSession {
     private const val AUTO_RESUME_BLOCKED_KEY = "spls_auto_resume_blocked_ids"
     private const val LAST_SESSION_ID_KEY = "spls_last_session_id"
 
-0
+    fun isOn(): Boolean = PrefManager.getRaw(K.SPLS_ENABLED) == "true"
+    fun isFeatureEnabled(): Boolean = PrefManager.getRaw(K.SPLS_FEATURE_ENABLED) == "true" ||
+        (PrefManager.getRaw(K.SPLS_FEATURE_ENABLED) == null && isOn())
+    fun setFeatureEnabled(enabled: Boolean) = PrefManager.setRaw(K.SPLS_FEATURE_ENABLED, if (enabled) "true" else null)
+
     fun isPaused(): Boolean = PrefManager.getRaw(K.SPLS_PAUSED) == "true"
     fun activeId(): String? = PrefManager.getRaw(K.SPLS_ACTIVE_ID)
     fun displayId(): String? = activeId() ?: PrefManager.getRaw(LAST_SESSION_ID_KEY)?.takeIf { isPaused(it) }
