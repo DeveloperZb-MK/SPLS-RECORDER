@@ -8,7 +8,7 @@ on:
         type: boolean
         default: false
   push:
-    branches: [ main ]
+    branches: [ main, cleanup/map-only-screen ]
     paths-ignore:
       - '**.md'
       - 'docs/**'
