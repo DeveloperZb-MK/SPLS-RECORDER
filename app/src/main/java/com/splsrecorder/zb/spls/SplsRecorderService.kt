@@ -171,23 +171,142 @@ class SplsRecorderService : Service() {
     @Suppress("DEPRECATION")
     @SuppressLint("NewApi")
     private fun onFix(loc: Location) {
-        // The master recording switch must remain on for a paused session.
         if (!SplsSession.isOn()) return
-        val target = activeLocation() ?: return
-        // Leaving a selected circle pauses the whole record instead of silently
-        // dropping fixes while the UI continues to report that it is recording.
-        if (target.isCircle && SplsGeo.distanceM(loc.latitude, loc.longitude, target.lat, target.lon) > target.radius) {
-            if (!SplsSession.isPaused()) SplsSession.pause()
-            return
-        }
-        // Manual and automatic pauses both retain the active record and its CSV.
-        if (SplsSession.isPaused()) return
         if (loc.isFromMockProvider) return
         val provider = loc.provider ?: return
         if (provider != "gps" && provider != "network" && provider != "fused") return
+
+        val now = SystemClock.elapsedRealtime()
+        val current = activeLocation()
+
+        // A running continuous record is not controlled by circle-area transitions.
+        if (current != null && !current.isCircle && !SplsSession.isPaused()) {
+            recordFix(loc, provider, current, now)
+            return
+        }
+
+        // Poor-accuracy fixes must not cause an area pause or automatic resume.
+        if (!loc.hasAccuracy() || loc.accuracy <= 0f || loc.accuracy > MAX_SWITCH_ACCURACY_M) {
+            resetAreaTimersIfStale(now)
+            if (current?.isCircle == true && !SplsSession.isPaused()) {
+                recordFix(loc, provider, current, now)
+            }
+            return
+        }
+
+        val accuracy = loc.accuracy.toDouble()
+        val target = followAreas(loc, current, accuracy, now) ?: return
+        // Continuous records have no geographic boundary.
+        if (!target.isCircle) {
+            if (!SplsSession.isPaused()) recordFix(loc, provider, target, now)
+            return
+        }
+
+        val distance = SplsGeo.distanceM(loc.latitude, loc.longitude, target.lat, target.lon)
+        val clearlyOutside = distance > target.radius + accuracy + EXIT_HYSTERESIS_M
+        if (clearlyOutside) {
+            if (outsideSince == 0L) outsideSince = now
+            candidateId = null
+            candidateSince = 0L
+            // Convert a manual pause to an area pause after a confirmed exit, so re-entry can resume it.
+            if (now - outsideSince >= EXIT_CONFIRM_MS &&
+                (!SplsSession.isPaused() || SplsSession.isManuallyPaused())) {
+                SplsSession.pauseForAreaExit()
+                cachedLoc = target
+                cachedAt = now
+                lastPos.clear()
+                recent.clear()
+                outsideSince = 0L
+            }
+            return
+        }
+
+        outsideSince = 0L
+        if (SplsSession.isPaused()) return
+        recordFix(loc, provider, target, now)
+    }
+
+    private var areasCache: List<SplsLocation> = emptyList()
+    private var areasAt = 0L
+    private var candidateId: String? = null
+    private var candidateSince = 0L
+    private var outsideSince = 0L
+    private var lastAreaFixAt = 0L
+
+    /** Location gaps must not count toward either the entry or exit confirmation period. */
+    private fun resetAreaTimersIfStale(now: Long) {
+        if (lastAreaFixAt != 0L && now - lastAreaFixAt > FIX_GAP_RESET_MS) {
+            candidateId = null
+            candidateSince = 0L
+            outsideSince = 0L
+        }
+    }
+
+    /** Accuracy-aware circle matching with confirmation before area switching or auto-resume. */
+    private fun followAreas(loc: Location, current: SplsLocation?, accuracy: Double, now: Long): SplsLocation? {
+        resetAreaTimersIfStale(now)
+        lastAreaFixAt = now
+        if (now - areasAt > 5000L) {
+            areasCache = SplsStore.locations(applicationContext)
+            areasAt = now
+        }
+
+        var inside: SplsLocation? = null
+        var bestRatio = Double.MAX_VALUE
+        for (area in areasCache) {
+            if (!area.isCircle) continue
+            val distance = SplsGeo.distanceM(loc.latitude, loc.longitude, area.lat, area.lon)
+            if (distance <= area.radius + accuracy) {
+                val ratio = distance / area.radius
+                if (ratio < bestRatio) {
+                    inside = area
+                    bestRatio = ratio
+                }
+            }
+        }
+
+        if (inside == null) {
+            candidateId = null
+            candidateSince = 0L
+            return current
+        }
+
+        // A manual pause remains paused while the device stays inside the same area.
+        if (current != null && inside.id == current.id &&
+            (!SplsSession.isPaused() || SplsSession.isManuallyPaused())) {
+            candidateId = null
+            candidateSince = 0L
+            return current
+        }
+
+        if (candidateId != inside.id) {
+            candidateId = inside.id
+            candidateSince = now
+            return null
+        }
+        if (candidateSince == 0L || now - candidateSince < ENTER_CONFIRM_MS) return null
+
+        candidateId = null
+        candidateSince = 0L
+        outsideSince = 0L
+
+        when {
+            current == null -> SplsSession.autoStart(applicationContext, inside)
+            current.id != inside.id -> SplsSession.switchToArea(inside)
+            SplsSession.isPaused() && !SplsSession.isManuallyPaused() -> SplsSession.resumeFromArea()
+        }
+
+        cachedLoc = inside
+        cachedAt = now
+        lastPos.clear()
+        recent.clear()
+        return inside
+    }
+
+    /** Existing provider sampling and persistence, kept separate from area-state decisions. */
+    private fun recordFix(loc: Location, provider: String, target: SplsLocation, now: Long) {
         if (!SplsProviders.isRecording(provider)) return
         if (SplsProviders.limitReached(provider, SplsStore.providerCount(applicationContext, target.id, provider))) return
-        val now = SystemClock.elapsedRealtime()
         val h = loc.accuracy.toDouble()
         if (h <= 0.0) return
 
@@ -212,22 +331,16 @@ class SplsRecorderService : Service() {
             else -> null
         }
         val speed = if (loc.hasSpeed()) loc.speed.toDouble() else 0.0
-
         val sig = "$h|$vAcc|$alt|$speed"
         if (sig == lastSig[provider] && now - last < 30_000L) return
         lastSig[provider] = sig
         lastAt[provider] = now
 
-        // bearing: direction of travel in degrees from true north, empty when Android reports none
         val bearing = if (loc.hasBearing()) loc.bearing.toDouble() else null
         val bearingAcc = if (loc.hasBearingAccuracy()) loc.bearingAccuracyDegrees.toDouble() else null
-
-        // jitter: meters from the previous fix of the same provider (only when that fix is less than a minute old)
         val prev = lastPos[provider]
         val gapOk = prev != null && now - prev.at < 60_000L
         val jitter = if (gapOk) SplsGeo.distanceM(prev!!.lat, prev.lon, loc.latitude, loc.longitude) else null
-
-        // drift: meters from the average position of the last 20 fixes of the same provider (needs at least 3)
         val window = recent.getOrPut(provider) { ArrayDeque() }
         if (!gapOk) window.clear()
         val drift = if (window.size >= 3) {
@@ -271,6 +384,11 @@ class SplsRecorderService : Service() {
         @Volatile var running = false
         private const val CHANNEL = "spls"
         private const val NOTIF_ID = 4711
+        private const val EXIT_HYSTERESIS_M = 3.0
+        private const val MAX_SWITCH_ACCURACY_M = 50.0
+        private const val EXIT_CONFIRM_MS = 6_000L
+        private const val ENTER_CONFIRM_MS = 4_000L
+        private const val FIX_GAP_RESET_MS = 30_000L
 
         fun start(ctx: Context) {
             ContextCompat.startForegroundService(ctx, Intent(ctx, SplsRecorderService::class.java))
