@@ -130,7 +130,11 @@ object SplsActions {
         if (!SplsRules.isActive(l)) return
 
         fun finishStop() {
-            SplsSession.stopForNow(ctx)
+            if (SplsSession.isPaused(l.id) && SplsSession.activeId() != l.id) {
+                SplsSession.stopPausedRecord(ctx, l.id)
+            } else {
+                SplsSession.stopForNow(ctx, l.id)
+            }
             say("Recording stopped. \"" + l.name + "\" will not resume automatically; tap Play to start it again.")
             changed()
         }
