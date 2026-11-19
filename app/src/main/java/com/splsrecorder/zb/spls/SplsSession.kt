@@ -51,6 +51,8 @@ object SplsSession {
             ids.add(id)
             savePausedIds(ids)
         }
+        // Pausing must never turn recording off or clear the active record.
+        PrefManager.setRaw(K.SPLS_ENABLED, "true")
         PrefManager.setRaw(K.SPLS_PAUSED, "true")
     }
 
