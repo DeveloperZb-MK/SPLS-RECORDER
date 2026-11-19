@@ -160,7 +160,7 @@ object SplsListUi {
     private fun recordRow(ctx: Context, serial: Int, l: SplsLocation, h: RecordHooks): LinearLayout {
         val active = SplsRules.isActive(l)
         val running = active && !SplsSession.isPaused()
-        val line = rowContainer(ctx, active)
+        val line = rowContainer(ctx, running)
         line.addView(serialView(ctx, serial), LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = dpOf(ctx, 6) })
         line.addView(nameAndSubtitle(ctx, l, SplsRules.subtitle(ctx, l)), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
 
