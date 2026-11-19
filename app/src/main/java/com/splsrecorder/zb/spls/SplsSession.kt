@@ -10,10 +10,12 @@ object SplsSession {
     private const val PAUSED_IDS_KEY = "spls_paused_location_ids"
     private const val MANUAL_PAUSE_KEY = "spls_manual_pause"
     private const val AUTO_RESUME_BLOCKED_KEY = "spls_auto_resume_blocked_ids"
+    private const val LAST_SESSION_ID_KEY = "spls_last_session_id"
 
 0
     fun isPaused(): Boolean = PrefManager.getRaw(K.SPLS_PAUSED) == "true"
     fun activeId(): String? = PrefManager.getRaw(K.SPLS_ACTIVE_ID)
+    fun displayId(): String? = activeId() ?: PrefManager.getRaw(LAST_SESSION_ID_KEY)?.takeIf { isPaused(it) }
     fun active(ctx: Context): SplsLocation? = activeId()?.let { SplsStore.find(ctx, it) }
 
     private fun pausedIds(): MutableSet<String> =
@@ -41,6 +43,9 @@ object SplsSession {
         savePausedIds(ids)
 
         setAutoResumeBlocked(loc.id, false)
+        PrefManager.setRaw(LAST_SESSION_ID_KEY, loc.id)
+        PrefManager.setRaw(LAST_SESSION_ID_KEY, loc.id)
+        PrefManager.setRaw(LAST_SESSION_ID_KEY, loc.id)
         PrefManager.setRaw(K.SPLS_ACTIVE_ID, loc.id)
         PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
         PrefManager.setRaw(K.SPLS_PAUSED, null)
@@ -57,6 +62,7 @@ object SplsSession {
             val ids = pausedIds()
             ids.add(id)
             savePausedIds(ids)
+            PrefManager.setRaw(LAST_SESSION_ID_KEY, id)
         }
         PrefManager.setRaw(MANUAL_PAUSE_KEY, "true")
         PrefManager.setRaw(K.SPLS_ENABLED, "true")
@@ -69,6 +75,7 @@ object SplsSession {
             val ids = pausedIds()
             ids.add(id)
             savePausedIds(ids)
+            PrefManager.setRaw(LAST_SESSION_ID_KEY, id)
         }
         PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
         PrefManager.setRaw(K.SPLS_ENABLED, "true")
@@ -139,6 +146,7 @@ object SplsSession {
         PrefManager.setRaw(K.SPLS_ENABLED, null)
         PrefManager.setRaw(K.SPLS_PAUSED, null)
         PrefManager.setRaw(K.SPLS_ACTIVE_ID, null)
+        if (stoppedId == blockAutoResumeFor || blockAutoResumeFor != null) PrefManager.setRaw(LAST_SESSION_ID_KEY, null)
         if (!isFeatureEnabled()) SplsRecorderService.stop(ctx.applicationContext)
         SplsStore.rebuild(ctx)
     }
@@ -154,6 +162,15 @@ object SplsSession {
         PrefManager.setRaw(K.SPLS_ENABLED, null)
         PrefManager.setRaw(K.SPLS_PAUSED, null)
         PrefManager.setRaw(K.SPLS_ACTIVE_ID, null)
+    }
+
+    fun stopPausedRecord(ctx: Context, id: String) {
+        val ids = pausedIds()
+        ids.remove(id)
+        savePausedIds(ids)
+        setAutoResumeBlocked(id, true)
+        if (PrefManager.getRaw(LAST_SESSION_ID_KEY) == id) PrefManager.setRaw(LAST_SESSION_ID_KEY, null)
+        SplsStore.rebuild(ctx)
     }
 
     fun disableFeature(ctx: Context) {
