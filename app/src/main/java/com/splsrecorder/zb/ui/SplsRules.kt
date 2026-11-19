@@ -36,7 +36,7 @@ object SplsRules {
         dataComplete(ctx, l.id) && !(isActive(l) && !SplsSession.isPaused())
 
     fun statusOf(l: SplsLocation): String = when {
-        isActive(l) && SplsSession.isPaused() -> "Paused"
+        (isActive(l) && SplsSession.isPaused()) || SplsSession.isPaused(l.id) -> "Paused"
         isActive(l) -> "Recording"
         else -> "Stopped"
     }
@@ -60,16 +60,15 @@ object SplsRules {
 
     // ------------------------------------------------------------ warnings
 
-    /** Another record is running or paused, so a second one cannot be started. */
+    /** A different record is actively recording, so a second active recording is not allowed. */
     fun warnOtherRecordActive(ctx: Context, wanted: String?) {
         val a = SplsSession.active(ctx)
-        val state = if (SplsSession.isPaused()) "paused" else "running"
         val target = if (wanted != null) "\"$wanted\"" else "a new record"
         MaterialAlertDialogBuilder(ctx)
-            .setTitle("Another record is active")
+            .setTitle("Another record is recording")
             .setMessage(
-                "The record \"${a?.name ?: "-"}\" is $state (active). Only one record can record at a time.\n\n" +
-                    "Please stop \"${a?.name ?: "it"}\" first with its stop button, then start $target."
+                "The record \"${a?.name ?: "-"}\" is currently recording. Only one record can collect data at a time.\n\n" +
+                    "Pause or stop it first, then start $target. A paused record can remain saved and be resumed later."
             )
             .setPositiveButton("OK", null)
             .show()
@@ -117,10 +116,12 @@ object SplsActions {
             }
             return
         }
-        if (SplsSession.isOn()) {
+        if (SplsSession.isOn() && !SplsSession.isPaused()) {
             SplsRules.warnOtherRecordActive(ctx, l.name)
             return
         }
+        // If the current record is paused, starting this one switches the single active
+        // session while preserving the previous record's paused state and saved CSV data.
         startNew(l)
     }
 
