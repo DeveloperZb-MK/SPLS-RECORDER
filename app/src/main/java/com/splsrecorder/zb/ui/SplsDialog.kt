@@ -1,6 +1,8 @@
 package com.splsrecorder.zb.ui
 
 import android.content.Context
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 import android.graphics.Color
 import android.text.Editable
 import android.text.InputType
@@ -18,6 +20,7 @@ import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -363,7 +366,7 @@ object SplsDialog {
             val q = search.text?.toString().orEmpty()
             SplsListUi.fillRecords(ctx, listA, q, recordHooks)
             guard = true
-            sw.isChecked = SplsSession.isOn()
+            sw.isChecked = SplsSession.isFeatureEnabled()
             guard = false
         }
 
@@ -377,6 +380,17 @@ object SplsDialog {
             refreshExport()
             onChanged()
         }
+
+        val areaChangeReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: android.content.Intent?) {
+                if (dialog.isShowing) refreshAll()
+            }
+        }
+        ContextCompat.registerReceiver(
+            ctx, areaChangeReceiver,
+            IntentFilter(SplsRecorderService.ACTION_AREA_SESSION_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
         // numbers and counts follow a running recording without rebuilding the lists
         val tick = object : Runnable {
@@ -393,6 +407,7 @@ object SplsDialog {
         dialog.setOnDismissListener {
             controller.cancelEnable()
             controller.notifier = null
+            runCatching { ctx.unregisterReceiver(areaChangeReceiver) }
             notice.removeCallbacks(hide)
             view.removeCallbacks(tick)
         }
@@ -407,30 +422,32 @@ object SplsDialog {
         sw.setOnCheckedChangeListener { _, checked ->
             if (guard) return@setOnCheckedChangeListener
             if (checked) {
+                SplsSession.setFeatureEnabled(true)
                 switchEnablePending = true
                 controller.enable { ok ->
                     switchEnablePending = false
                     if (!ok) {
+                        SplsSession.setFeatureEnabled(false)
                         if (dialog.isShowing) view.post { refreshAll() }
                     } else {
                         SplsFlow.chooseStart(
                             ctx, { msg -> say(msg) },
                             done = { if (dialog.isShowing) view.post { refreshAll() } },
-                            canceled = { if (dialog.isShowing) view.post { refreshAll() } },
+                            canceled = { SplsSession.setFeatureEnabled(false); if (dialog.isShowing) view.post { refreshAll() } },
                             leave = { leaveForMap() }
                         )
                     }
                 }
             } else {
                 switchEnablePending = false
-                SplsSession.stopForNow(ctx)
-                say("Recording stopped. Start a record again with its play button.")
+                SplsSession.disableFeature(ctx)
+                say("SPLS recording disabled.")
                 view.post { refreshAll() }
             }
         }
 
         view.findViewById<View>(R.id.spls_add).setOnClickListener {
-            if (!SplsSession.isOn()) {
+            if (!SplsSession.isFeatureEnabled()) {
                 MaterialAlertDialogBuilder(ctx)
                     .setTitle("SPLS Recording is Off")
                     .setMessage("Please enable SPLS recording first using the Enable SPLS Recording switch.")
@@ -481,7 +498,7 @@ object SplsDialog {
         view.findViewById<View>(R.id.spls_close).setOnClickListener { dialog.dismiss() }
 
         // if SPLS is on but the recorder is not running (for example after a restart), start it again
-        if (SplsSession.isOn() && !SplsRecorderService.running) {
+        if (SplsSession.isFeatureEnabled() && !SplsRecorderService.running) {
             try { SplsRecorderService.start(ctx.applicationContext) } catch (e: Exception) { }
         }
         refreshAll()
