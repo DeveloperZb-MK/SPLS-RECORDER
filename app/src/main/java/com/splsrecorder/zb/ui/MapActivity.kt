@@ -306,7 +306,20 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
 
     private fun splsButtonClicked() {
         if (!pick) {
-            SplsDialog.show(this, splsController, onPickArea = { enterPick() }, onChanged = { drawSplsCircles(true) })
+            if (SplsStore.locations(this).isNotEmpty()) {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                    .setTitle("SPLS Options")
+                    .setMessage("Choose one of the options below to continue")
+                    .setItems(arrayOf("Open SPLS", "Select a location for recording")) { _, which ->
+                        when (which) {
+                            0 -> SplsDialog.show(this, splsController, onPickArea = { enterPick() }, onChanged = { drawSplsCircles(true) })
+                            1 -> enterPick()
+                        }
+                    }
+                    .show()
+            } else {
+                SplsDialog.show(this, splsController, onPickArea = { enterPick() }, onChanged = { drawSplsCircles(true) })
+            }
             return
         }
         if (!picked) {
