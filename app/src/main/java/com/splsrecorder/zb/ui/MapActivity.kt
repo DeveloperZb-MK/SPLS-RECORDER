@@ -26,6 +26,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.splsrecorder.zb.R
 import com.splsrecorder.zb.databinding.ActivityMapBinding
 import com.splsrecorder.zb.spls.SplsAreas
