@@ -167,6 +167,14 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
             uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.END)
             uiSettings.setAttributionMargins(0, 0, dp(16), dp(48))
             addOnMapClickListener(this@MapActivity)
+            setOnMarkerClickListener { tappedMarker ->
+                if (pick && markers.contains(tappedMarker)) {
+                    pickPoint(tappedMarker.position.latitude, tappedMarker.position.longitude)
+                    true
+                } else {
+                    false
+                }
+            }
         }
         val fix = SplsFlow.currentFix(this)
         if (fix != null) {
@@ -379,7 +387,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
                 clearPreview()
                 drawSplsCircles(true)
                 startAfterPick(loc)
-            }, { clearPreview() }, { radius -> SplsAreas.overlapMessage(this, lat, lon, radius, null) })
+            }, { exitPick() }, { radius -> SplsAreas.overlapMessage(this, lat, lon, radius, null) }, { exitPick() })
         })
     }
 
