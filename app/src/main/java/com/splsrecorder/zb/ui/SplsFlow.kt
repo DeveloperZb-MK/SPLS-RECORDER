@@ -75,7 +75,7 @@ object SplsFlow {
         }
         
         // 2. Select another location
-        row("Select another location", "Pick an area on the map. Records only while you are inside it.") {
+        row("Another location", "Pick an area on the map. Records only while you are inside it.") {
             PrefManager.setRaw(K.SPLS_PICK_PENDING, "true")
             leave()
         }
