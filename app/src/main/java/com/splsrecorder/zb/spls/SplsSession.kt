@@ -9,8 +9,9 @@ object SplsSession {
 
     private const val PAUSED_IDS_KEY = "spls_paused_location_ids"
     private const val MANUAL_PAUSE_KEY = "spls_manual_pause"
+    private const val AUTO_RESUME_BLOCKED_KEY = "spls_auto_resume_blocked_ids"
 
-    fun isOn(): Boolean = PrefManager.getRaw(K.SPLS_ENABLED) == "true"
+0
     fun isPaused(): Boolean = PrefManager.getRaw(K.SPLS_PAUSED) == "true"
     fun activeId(): String? = PrefManager.getRaw(K.SPLS_ACTIVE_ID)
     fun active(ctx: Context): SplsLocation? = activeId()?.let { SplsStore.find(ctx, it) }
@@ -39,11 +40,13 @@ object SplsSession {
         ids.remove(loc.id)
         savePausedIds(ids)
 
+        setAutoResumeBlocked(loc.id, false)
         PrefManager.setRaw(K.SPLS_ACTIVE_ID, loc.id)
         PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
         PrefManager.setRaw(K.SPLS_PAUSED, null)
         SplsProviders.resetStates()
         PrefManager.setRaw(K.SPLS_ENABLED, "true")
+        setFeatureEnabled(true)
         SplsRecorderService.start(ctx.applicationContext)
     }
 
@@ -105,8 +108,9 @@ object SplsSession {
         PrefManager.setRaw(K.SPLS_ENABLED, "true")
     }
 
-    /** Starts a confirmed area when SPLS is enabled but has no active record. */
+    /** Starts a confirmed area when the master feature is enabled and no session is active. */
     fun autoStart(ctx: Context, loc: SplsLocation) {
+        if (isAutoResumeBlocked(loc.id)) return
         val ids = pausedIds()
         ids.remove(loc.id)
         savePausedIds(ids)
@@ -117,17 +121,44 @@ object SplsSession {
         SplsProviders.resetStates()
     }
 
-    /** Ends the active session but keeps its data and any other paused records. */
-    fun stopForNow(ctx: Context) {
-        activeId()?.let { id ->
+    /** Ends a record session without disabling the master area-monitoring switch. */
+    fun stopForNow(ctx: Context, blockAutoResumeFor: String? = null) {
+        val stoppedId = activeId()
+        blockAutoResumeFor?.let {
+            setAutoResumeBlocked(it, true)
             val ids = pausedIds()
-            ids.remove(id)
+            ids.remove(it)
             savePausedIds(ids)
         }
+        if (stoppedId != null && stoppedId != blockAutoResumeFor && isPaused()) {
+            val ids = pausedIds()
+            ids.add(stoppedId)
+            savePausedIds(ids)
+        }
+        PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
         PrefManager.setRaw(K.SPLS_ENABLED, null)
         PrefManager.setRaw(K.SPLS_PAUSED, null)
         PrefManager.setRaw(K.SPLS_ACTIVE_ID, null)
-        SplsRecorderService.stop(ctx.applicationContext)
+        if (!isFeatureEnabled()) SplsRecorderService.stop(ctx.applicationContext)
         SplsStore.rebuild(ctx)
+    }
+
+    /** Area exit ends only the current session; its record remains eligible for confirmed re-entry. */
+    fun clearForAreaExit() {
+        activeId()?.let { id ->
+            val ids = pausedIds()
+            ids.add(id)
+            savePausedIds(ids)
+        }
+        PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
+        PrefManager.setRaw(K.SPLS_ENABLED, null)
+        PrefManager.setRaw(K.SPLS_PAUSED, null)
+        PrefManager.setRaw(K.SPLS_ACTIVE_ID, null)
+    }
+
+    fun disableFeature(ctx: Context) {
+        setFeatureEnabled(false)
+        stopForNow(ctx)
+        SplsRecorderService.stop(ctx.applicationContext)
     }
 }
