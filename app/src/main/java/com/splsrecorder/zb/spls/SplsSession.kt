@@ -17,6 +17,26 @@ object SplsSession {
         (PrefManager.getRaw(K.SPLS_FEATURE_ENABLED) == null && isOn())
     fun setFeatureEnabled(enabled: Boolean) = PrefManager.setRaw(K.SPLS_FEATURE_ENABLED, if (enabled) "true" else null)
 
+    /** True only while this record is the selected session and is actively collecting fixes. */
+    fun isRecording(locationId: String): Boolean =
+        isOn() && activeId() == locationId && !isPaused()
+
+    private fun autoResumeBlockedIds(): MutableSet<String> =
+        PrefManager.getRaw(AUTO_RESUME_BLOCKED_KEY).orEmpty()
+            .split('|').filter { it.isNotBlank() }.toMutableSet()
+
+    fun isAutoResumeBlocked(locationId: String): Boolean =
+        locationId in autoResumeBlockedIds()
+
+    private fun setAutoResumeBlocked(locationId: String, blocked: Boolean) {
+        val ids = autoResumeBlockedIds()
+        if (blocked) ids.add(locationId) else ids.remove(locationId)
+        PrefManager.setRaw(
+            AUTO_RESUME_BLOCKED_KEY,
+            ids.takeIf { it.isNotEmpty() }?.joinToString("|")
+        )
+    }
+
     fun isPaused(): Boolean = PrefManager.getRaw(K.SPLS_PAUSED) == "true"
     fun activeId(): String? = PrefManager.getRaw(K.SPLS_ACTIVE_ID)
     fun displayId(): String? = activeId() ?: PrefManager.getRaw(LAST_SESSION_ID_KEY)?.takeIf { isPaused(it) }
@@ -47,7 +67,6 @@ object SplsSession {
         savePausedIds(ids)
 
         setAutoResumeBlocked(loc.id, false)
-        PrefManager.setRaw(LAST_SESSION_ID_KEY, loc.id)
         PrefManager.setRaw(LAST_SESSION_ID_KEY, loc.id)
         PrefManager.setRaw(K.SPLS_ACTIVE_ID, loc.id)
         PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
