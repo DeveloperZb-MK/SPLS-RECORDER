@@ -203,7 +203,7 @@ class MainViewModel @Inject constructor(
             }
         }.onFailure {
             it.printStackTrace()
-            context.showToast(context.getString(R.string.app_update_failed))
+            context.showToast("Update failed")
         }
 
     }
