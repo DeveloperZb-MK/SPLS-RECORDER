@@ -171,11 +171,17 @@ class SplsRecorderService : Service() {
     @Suppress("DEPRECATION")
     @SuppressLint("NewApi")
     private fun onFix(loc: Location) {
-        // only real data: not while paused
-        if (!SplsSession.isOn() || SplsSession.isPaused()) return
+        // The master recording switch must remain on for a paused session.
+        if (!SplsSession.isOn()) return
         val target = activeLocation() ?: return
-        // area-limited recording: only inside the circle of the location
-        if (target.isCircle && SplsGeo.distanceM(loc.latitude, loc.longitude, target.lat, target.lon) > target.radius) return
+        // Leaving a selected circle pauses the whole record instead of silently
+        // dropping fixes while the UI continues to report that it is recording.
+        if (target.isCircle && SplsGeo.distanceM(loc.latitude, loc.longitude, target.lat, target.lon) > target.radius) {
+            if (!SplsSession.isPaused()) SplsSession.pause()
+            return
+        }
+        // Manual and automatic pauses both retain the active record and its CSV.
+        if (SplsSession.isPaused()) return
         if (loc.isFromMockProvider) return
         val provider = loc.provider ?: return
         if (provider != "gps" && provider != "network" && provider != "fused") return
