@@ -307,16 +307,55 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
     private fun splsButtonClicked() {
         if (!pick) {
             if (SplsStore.locations(this).isNotEmpty()) {
-                com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                val density = resources.displayMetrics.density
+                fun dp(value: Int) = (value * density).toInt()
+                val content = android.widget.LinearLayout(this).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                    setPadding(dp(24), dp(8), dp(24), dp(8))
+                }
+                content.addView(android.widget.TextView(this).apply {
+                    text = "Choose one of the options below to continue"
+                    textSize = 16f
+                    setTextColor(com.google.android.material.color.MaterialColors.getColor(
+                        this@MapActivity, com.google.android.material.R.attr.colorOnSurface, android.graphics.Color.DKGRAY
+                    ))
+                }, android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dp(16) })
+                val openButton = com.google.android.material.button.MaterialButton(
+                    this, null, com.google.android.material.R.attr.materialButtonStyle
+                ).apply {
+                    text = "Open SPLS"
+                    isAllCaps = false
+                    textSize = 15f
+                }
+                content.addView(openButton, android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, dp(48)
+                ).apply { bottomMargin = dp(10) })
+                val selectButton = com.google.android.material.button.MaterialButton(
+                    this, null, com.google.android.material.R.attr.materialButtonStyle
+                ).apply {
+                    text = "Select a location for recording"
+                    isAllCaps = false
+                    textSize = 15f
+                }
+                content.addView(selectButton, android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, dp(48)
+                ))
+                val optionsDialog = MaterialAlertDialogBuilder(this)
                     .setTitle("SPLS Options")
-                    .setMessage("Choose one of the options below to continue")
-                    .setItems(arrayOf("Open SPLS", "Select a location for recording")) { _, which ->
-                        when (which) {
-                            0 -> SplsDialog.show(this, splsController, onPickArea = { enterPick() }, onChanged = { drawSplsCircles(true) })
-                            1 -> enterPick()
-                        }
-                    }
-                    .show()
+                    .setView(content)
+                    .create()
+                openButton.setOnClickListener {
+                    optionsDialog.dismiss()
+                    SplsDialog.show(this, splsController, onPickArea = { enterPick() }, onChanged = { drawSplsCircles(true) })
+                }
+                selectButton.setOnClickListener {
+                    optionsDialog.dismiss()
+                    enterPick()
+                }
+                optionsDialog.show()
             } else {
                 SplsDialog.show(this, splsController, onPickArea = { enterPick() }, onChanged = { drawSplsCircles(true) })
             }
