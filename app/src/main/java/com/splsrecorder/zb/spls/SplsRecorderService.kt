@@ -78,7 +78,7 @@ class SplsRecorderService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!SplsSession.isOn()) {
+        if (!SplsSession.isFeatureEnabled()) {
             stopSelf()
             return START_NOT_STICKY
         }
@@ -171,7 +171,7 @@ class SplsRecorderService : Service() {
     @Suppress("DEPRECATION")
     @SuppressLint("NewApi")
     private fun onFix(loc: Location) {
-        if (!SplsSession.isOn()) return
+        if (!SplsSession.isFeatureEnabled()) return
         if (loc.isFromMockProvider) return
         val provider = loc.provider ?: return
         if (provider != "gps" && provider != "network" && provider != "fused") return
@@ -211,8 +211,9 @@ class SplsRecorderService : Service() {
             // Convert a manual pause to an area pause after a confirmed exit, so re-entry can resume it.
             if (now - outsideSince >= EXIT_CONFIRM_MS &&
                 (!SplsSession.isPaused() || SplsSession.isManuallyPaused())) {
-                SplsSession.pauseForAreaExit()
-                cachedLoc = target
+                SplsSession.clearForAreaExit()
+                notifyAreaSessionChanged()
+                cachedLoc = null
                 cachedAt = now
                 lastPos.clear()
                 recent.clear()
@@ -224,6 +225,10 @@ class SplsRecorderService : Service() {
         outsideSince = 0L
         if (SplsSession.isPaused()) return
         recordFix(loc, provider, target, now)
+    }
+
+    private fun notifyAreaSessionChanged() {
+        sendBroadcast(Intent(ACTION_AREA_SESSION_CHANGED).setPackage(packageName))
     }
 
     private var areasCache: List<SplsLocation> = emptyList()
@@ -272,6 +277,12 @@ class SplsRecorderService : Service() {
         }
 
         // A manual pause remains paused while the device stays inside the same area.
+        if (SplsSession.isAutoResumeBlocked(inside.id)) {
+            candidateId = null
+            candidateSince = 0L
+            return null
+        }
+
         if (current != null && inside.id == current.id &&
             (!SplsSession.isPaused() || SplsSession.isManuallyPaused())) {
             candidateId = null
@@ -296,6 +307,7 @@ class SplsRecorderService : Service() {
             SplsSession.isPaused() && !SplsSession.isManuallyPaused() -> SplsSession.resumeFromArea()
         }
 
+        notifyAreaSessionChanged()
         cachedLoc = inside
         cachedAt = now
         lastPos.clear()
@@ -382,6 +394,7 @@ class SplsRecorderService : Service() {
 
     companion object {
         @Volatile var running = false
+        const val ACTION_AREA_SESSION_CHANGED = "com.splsrecorder.zb.ACTION_AREA_SESSION_CHANGED"
         private const val CHANNEL = "spls"
         private const val NOTIF_ID = 4711
         private const val EXIT_HYSTERESIS_M = 3.0
