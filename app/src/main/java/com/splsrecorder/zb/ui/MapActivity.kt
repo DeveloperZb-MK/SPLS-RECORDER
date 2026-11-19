@@ -148,7 +148,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
         if (!tracking) {
             tracking = true
             locationClient = LocationServices.getFusedLocationProviderClient(this)
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000).build()
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)
+                .setMinUpdateIntervalMillis(500L)
+                .setMinUpdateDistanceMeters(0f)
+                .build()
             locationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
         }
         if (styleReady) map.getStyle { activateLocationDot(it, false) }
@@ -249,7 +252,12 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, MapLibreMap.OnMapCl
         val visible = ArrayList<Pair<Int, SplsLocation>>()
         locations.forEachIndexed { index, l ->
             if (!l.isCircle) return@forEachIndexed
-            val inside = here != null && SplsGeo.distanceM(here.latitude, here.longitude, l.lat, l.lon) <= l.radius
+            val sessionInside = SplsSession.isOn() && SplsSession.activeId() == l.id
+            val accuracy = here?.let { if (it.hasAccuracy() && it.accuracy > 0f) it.accuracy.toDouble() else 0.0 } ?: 0.0
+            val insideByFix = here != null &&
+                accuracy <= 50.0 &&
+                SplsGeo.distanceM(here.latitude, here.longitude, l.lat, l.lon) <= l.radius + accuracy
+            val inside = sessionInside || insideByFix
             sig.append(l.id).append(index).append(l.lat).append(l.lon).append(l.radius).append(inside).append(';')
             if (!inside) visible.add(Pair(index + 1, l))
         }
