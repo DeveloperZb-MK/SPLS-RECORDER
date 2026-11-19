@@ -8,6 +8,7 @@ import com.splsrecorder.zb.utils.PrefManager
 object SplsSession {
 
     private const val PAUSED_IDS_KEY = "spls_paused_location_ids"
+    private const val MANUAL_PAUSE_KEY = "spls_manual_pause"
 
     fun isOn(): Boolean = PrefManager.getRaw(K.SPLS_ENABLED) == "true"
     fun isPaused(): Boolean = PrefManager.getRaw(K.SPLS_PAUSED) == "true"
@@ -39,11 +40,14 @@ object SplsSession {
         savePausedIds(ids)
 
         PrefManager.setRaw(K.SPLS_ACTIVE_ID, loc.id)
+        PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
         PrefManager.setRaw(K.SPLS_PAUSED, null)
         SplsProviders.resetStates()
         PrefManager.setRaw(K.SPLS_ENABLED, "true")
         SplsRecorderService.start(ctx.applicationContext)
     }
+
+    fun isManuallyPaused(): Boolean = PrefManager.getRaw(MANUAL_PAUSE_KEY) == "true"
 
     fun pause() {
         activeId()?.let { id ->
@@ -51,7 +55,19 @@ object SplsSession {
             ids.add(id)
             savePausedIds(ids)
         }
-        // Pausing must never turn recording off or clear the active record.
+        PrefManager.setRaw(MANUAL_PAUSE_KEY, "true")
+        PrefManager.setRaw(K.SPLS_ENABLED, "true")
+        PrefManager.setRaw(K.SPLS_PAUSED, "true")
+    }
+
+    /** Pauses on confirmed area exit but allows a later confirmed re-entry to resume. */
+    fun pauseForAreaExit() {
+        activeId()?.let { id ->
+            val ids = pausedIds()
+            ids.add(id)
+            savePausedIds(ids)
+        }
+        PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
         PrefManager.setRaw(K.SPLS_ENABLED, "true")
         PrefManager.setRaw(K.SPLS_PAUSED, "true")
     }
@@ -62,7 +78,43 @@ object SplsSession {
             ids.remove(id)
             savePausedIds(ids)
         }
+        PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
         PrefManager.setRaw(K.SPLS_PAUSED, null)
+    }
+
+    fun resumeFromArea() {
+        if (isManuallyPaused()) return
+        activeId()?.let { id ->
+            val ids = pausedIds()
+            ids.remove(id)
+            savePausedIds(ids)
+        }
+        PrefManager.setRaw(K.SPLS_PAUSED, null)
+    }
+
+    /** Switches to a different confirmed circle while preserving the previous record as paused. */
+    fun switchToArea(loc: SplsLocation) {
+        val previousId = activeId()
+        val ids = pausedIds()
+        if (previousId != null && previousId != loc.id) ids.add(previousId)
+        ids.remove(loc.id)
+        savePausedIds(ids)
+        PrefManager.setRaw(K.SPLS_ACTIVE_ID, loc.id)
+        PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
+        PrefManager.setRaw(K.SPLS_PAUSED, null)
+        PrefManager.setRaw(K.SPLS_ENABLED, "true")
+    }
+
+    /** Starts a confirmed area when SPLS is enabled but has no active record. */
+    fun autoStart(ctx: Context, loc: SplsLocation) {
+        val ids = pausedIds()
+        ids.remove(loc.id)
+        savePausedIds(ids)
+        PrefManager.setRaw(K.SPLS_ACTIVE_ID, loc.id)
+        PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
+        PrefManager.setRaw(K.SPLS_PAUSED, null)
+        PrefManager.setRaw(K.SPLS_ENABLED, "true")
+        SplsProviders.resetStates()
     }
 
     /** Ends the active session but keeps its data and any other paused records. */
