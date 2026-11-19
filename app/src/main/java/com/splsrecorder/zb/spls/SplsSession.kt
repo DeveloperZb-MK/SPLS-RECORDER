@@ -45,7 +45,6 @@ object SplsSession {
         setAutoResumeBlocked(loc.id, false)
         PrefManager.setRaw(LAST_SESSION_ID_KEY, loc.id)
         PrefManager.setRaw(LAST_SESSION_ID_KEY, loc.id)
-        PrefManager.setRaw(LAST_SESSION_ID_KEY, loc.id)
         PrefManager.setRaw(K.SPLS_ACTIVE_ID, loc.id)
         PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
         PrefManager.setRaw(K.SPLS_PAUSED, null)
@@ -157,6 +156,7 @@ object SplsSession {
             val ids = pausedIds()
             ids.add(id)
             savePausedIds(ids)
+            PrefManager.setRaw(LAST_SESSION_ID_KEY, id)
         }
         PrefManager.setRaw(MANUAL_PAUSE_KEY, null)
         PrefManager.setRaw(K.SPLS_ENABLED, null)
