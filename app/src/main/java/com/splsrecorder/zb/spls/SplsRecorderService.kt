@@ -251,7 +251,7 @@ class SplsRecorderService : Service() {
     private fun followAreas(loc: Location, current: SplsLocation?, accuracy: Double, now: Long): SplsLocation? {
         resetAreaTimersIfStale(now)
         lastAreaFixAt = now
-        if (now - areasAt > 5000L) {
+        if (now - areasAt > 1500L) {
             areasCache = SplsStore.locations(applicationContext)
             areasAt = now
         }
