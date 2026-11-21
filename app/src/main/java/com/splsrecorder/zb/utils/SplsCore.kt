@@ -56,13 +56,14 @@ data class SplsRow(
     val provider: String,
     val lat: Double,
     val lon: Double,
-    val hAcc: Double,
-    /** accuracy of the network position at that moment (for a network row: its own accuracy) */
-    val netAcc: Double,
+    val gpsHorizontalAccuracy: Double?,
+    val networkHorizontalAccuracy: Double?,
+    val fusedHorizontalAccuracy: Double?,
     val vAcc: Double?,
     val alt: Double?,
     val msl: Double?,
-    val speed: Double,
+    /** null means Android did not supply a speed measurement. */
+    val speed: Double?,
     /** direction of travel in degrees from true north (0..360); null when Android reports none */
     val bearing: Double? = null,
     /** accuracy of the bearing in degrees; null when not reported */
@@ -71,4 +72,12 @@ data class SplsRow(
     val jitter: Double? = null,
     /** drift: distance in meters from the average position of the last fixes of the same provider */
     val drift: Double? = null
-)
+) {
+    /** Returns only the horizontal accuracy recorded by this row's own provider. */
+    fun providerHorizontalAccuracy(): Double? = when (provider) {
+        "gps" -> gpsHorizontalAccuracy
+        "network" -> networkHorizontalAccuracy
+        "fused" -> fusedHorizontalAccuracy
+        else -> null
+    }
+}
