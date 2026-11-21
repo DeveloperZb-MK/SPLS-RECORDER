@@ -24,7 +24,7 @@ object SplsStore {
 
     private const val REGISTRY = "spls_locations.json"
     private const val OLD_FILE = "spls_records.csv"
-    private const val HEADER = "run_id,datetime,provider,latitude,longitude,horizontal_acc,network_acc,vertical_acc,altitude_wgs84,altitude_msl,speed,bearing,bearing_acc,jitter_m,drift_m"
+    private const val HEADER = "run_id,datetime,provider,latitude,longitude,gps_horizontal_acc,network_horizontal_acc,fused_horizontal_acc,vertical_acc,altitude_wgs84,altitude_msl,speed,bearing,bearing_acc,jitter_m,drift_m"
     private const val REBUILD_EVERY = 25
 
     private val lock = Any()
@@ -47,7 +47,8 @@ object SplsStore {
         return listOf(
             runFmt().format(d), dateFmt().format(d), r.provider,
             String.format(Locale.US, "%.8f", r.lat), String.format(Locale.US, "%.8f", r.lon),
-            plain(r.hAcc), plain(r.netAcc), plain(r.vAcc), plain(r.alt), plain(r.msl), plain(r.speed),
+            plain(r.gpsHorizontalAccuracy), plain(r.networkHorizontalAccuracy), plain(r.fusedHorizontalAccuracy),
+            plain(r.vAcc), plain(r.alt), plain(r.msl), plain(r.speed),
             plain(r.bearing), plain(r.bearingAcc), r2(r.jitter), r2(r.drift)
         ).joinToString(",")
     }
@@ -60,26 +61,54 @@ object SplsStore {
         val time = try { dateFmt().parse(p[1].trim())?.time } catch (e: Exception) { null } ?: return null
         val lat = p[3].trim().toDoubleOrNull() ?: return null
         val lon = p[4].trim().toDoubleOrNull() ?: return null
-        val h = p[5].trim().toDoubleOrNull() ?: return null
-        val n = p[6].trim().toDoubleOrNull() ?: return null
-        if (h <= 0.0 || n <= 0.0) return null
+
+        // Current KHPAL-compatible CSV has three provider-specific columns. Older SPLS-RECORDER
+        // files have horizontal_acc and network_acc; migrate horizontal_acc into the column
+        // belonging to the row's provider and do not reuse the old network comparison value.
+        val gpsH: Double?
+        val networkH: Double?
+        val fusedH: Double?
+        val offset: Int
+        if (p.size >= 16) {
+            gpsH = p[5].trim().toDoubleOrNull()
+            networkH = p[6].trim().toDoubleOrNull()
+            fusedH = p[7].trim().toDoubleOrNull()
+            offset = 8
+        } else {
+            val legacy = p[5].trim().toDoubleOrNull()
+            gpsH = if (provider == "gps") legacy else null
+            networkH = if (provider == "network") legacy else null
+            fusedH = if (provider == "fused") legacy else null
+            offset = 7
+        }
+        val ownAccuracy = when (provider) {
+            "gps" -> gpsH
+            "network" -> networkH
+            else -> fusedH
+        }
+        if (ownAccuracy == null || !ownAccuracy.isFinite() || ownAccuracy <= 0.0) return null
+
         return SplsRow(
-            time, provider, lat, lon, h, n,
-            p[7].trim().toDoubleOrNull(), p[8].trim().toDoubleOrNull(), p[9].trim().toDoubleOrNull(),
-            p[10].trim().toDoubleOrNull() ?: 0.0,
-            // older files have only 11 columns: bearing, jitter and drift stay empty
-            p.getOrNull(11)?.trim()?.toDoubleOrNull(), p.getOrNull(12)?.trim()?.toDoubleOrNull(),
-            p.getOrNull(13)?.trim()?.toDoubleOrNull(), p.getOrNull(14)?.trim()?.toDoubleOrNull()
+            time, provider, lat, lon, gpsH, networkH, fusedH,
+            p.getOrNull(offset)?.trim()?.toDoubleOrNull(),
+            p.getOrNull(offset + 1)?.trim()?.toDoubleOrNull(),
+            p.getOrNull(offset + 2)?.trim()?.toDoubleOrNull(),
+            p.getOrNull(offset + 3)?.trim()?.toDoubleOrNull(),
+            p.getOrNull(offset + 4)?.trim()?.toDoubleOrNull(),
+            p.getOrNull(offset + 5)?.trim()?.toDoubleOrNull(),
+            p.getOrNull(offset + 6)?.trim()?.toDoubleOrNull(),
+            p.getOrNull(offset + 7)?.trim()?.toDoubleOrNull()
         )
     }
 
-    private fun key(r: SplsRow) = "${r.timeMs}|${r.provider}|${r.hAcc}"
+    private fun key(r: SplsRow) = "${r.timeMs}|${r.provider}|${r.providerHorizontalAccuracy()}"
 
     private fun rowsOf(ctx: Context, id: String): ArrayList<SplsRow> {
         rowsById[id]?.let { return it }
         val list = ArrayList<SplsRow>()
         val f = rowFile(ctx, id)
         var oldFormat = false
+        var legacyAccuracySchema = true
         if (f.exists()) {
             f.bufferedReader().useLines { lines ->
                 var first = true
@@ -88,6 +117,8 @@ object SplsStore {
                         first = false
                         if (line.startsWith("run_id")) {
                             oldFormat = !line.contains("jitter_m")
+                            legacyAccuracySchema = !line.contains("gps_horizontal_acc") ||
+                                !line.contains("network_horizontal_acc") || !line.contains("fused_horizontal_acc")
                             continue
                         }
                     }
@@ -96,6 +127,8 @@ object SplsStore {
             }
         }
         if (oldFormat) fillOldMotion(list)
+        // Rewrite legacy files in the exact current schema before any future append/export.
+        if (legacyAccuracySchema && list.isNotEmpty()) writeRows(ctx, id, list)
         rowsById[id] = list
         return list
     }
@@ -249,7 +282,8 @@ object SplsStore {
         val bins = mapOf("gps" to IntArray(SplsBlocks.COUNT), "network" to IntArray(SplsBlocks.COUNT), "fused" to IntArray(SplsBlocks.COUNT))
         for (r in list) {
             val b = bins[r.provider] ?: continue
-            b[SplsBlocks.index(r.hAcc)]++
+            val ownAccuracy = r.providerHorizontalAccuracy() ?: continue
+            b[SplsBlocks.index(ownAccuracy)]++
         }
         return Counts(countOf(list, "gps"), countOf(list, "network"), countOf(list, "fused"), bins)
     }
