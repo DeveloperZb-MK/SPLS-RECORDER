@@ -71,7 +71,13 @@ data class SplsRow(
     /** jitter: distance in meters from the previous fix of the same provider (null for the first fix) */
     val jitter: Double? = null,
     /** drift: distance in meters from the average position of the last fixes of the same provider */
-    val drift: Double? = null
+    val drift: Double? = null,
+    /** MSL source: native Android Location data or GNSS/NMEA GGA data. */
+    val mslSource: String? = null,
+    /** GNSS fix timestamp supplied by Android with the NMEA callback, Unix epoch milliseconds. */
+    val nmeaFixTimestampMs: Long? = null,
+    /** Absolute difference between GPS Location.time and the NMEA GNSS fix timestamp. */
+    val nmeaAgeMs: Long? = null
 ) {
     /** Returns only the horizontal accuracy recorded by this row's own provider. */
     fun providerHorizontalAccuracy(): Double? = when (provider) {

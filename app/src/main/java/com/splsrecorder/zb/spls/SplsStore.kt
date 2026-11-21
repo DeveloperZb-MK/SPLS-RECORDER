@@ -24,7 +24,7 @@ object SplsStore {
 
     private const val REGISTRY = "spls_locations.json"
     private const val OLD_FILE = "spls_records.csv"
-    private const val HEADER = "run_id,datetime,provider,latitude,longitude,gps_horizontal_acc,network_horizontal_acc,fused_horizontal_acc,vertical_acc,altitude_wgs84,altitude_msl,speed,bearing,bearing_acc,jitter_m,drift_m"
+    private const val HEADER = "run_id,datetime,provider,latitude,longitude,gps_horizontal_acc,network_horizontal_acc,fused_horizontal_acc,vertical_acc,altitude_wgs84,altitude_msl,speed,bearing,bearing_acc,jitter_m,drift_m,msl_source,nmea_fix_timestamp,nmea_age_ms"
     private const val REBUILD_EVERY = 25
 
     private val lock = Any()
@@ -49,7 +49,8 @@ object SplsStore {
             String.format(Locale.US, "%.8f", r.lat), String.format(Locale.US, "%.8f", r.lon),
             plain(r.gpsHorizontalAccuracy), plain(r.networkHorizontalAccuracy), plain(r.fusedHorizontalAccuracy),
             plain(r.vAcc), plain(r.alt), plain(r.msl), plain(r.speed),
-            plain(r.bearing), plain(r.bearingAcc), r2(r.jitter), r2(r.drift)
+            plain(r.bearing), plain(r.bearingAcc), r2(r.jitter), r2(r.drift),
+            r.mslSource ?: "", r.nmeaFixTimestampMs?.toString() ?: "", r.nmeaAgeMs?.toString() ?: ""
         ).joinToString(",")
     }
 
@@ -97,7 +98,10 @@ object SplsStore {
             p.getOrNull(offset + 4)?.trim()?.toDoubleOrNull(),
             p.getOrNull(offset + 5)?.trim()?.toDoubleOrNull(),
             p.getOrNull(offset + 6)?.trim()?.toDoubleOrNull(),
-            p.getOrNull(offset + 7)?.trim()?.toDoubleOrNull()
+            p.getOrNull(offset + 7)?.trim()?.toDoubleOrNull(),
+            p.getOrNull(16)?.trim()?.takeIf { it.isNotEmpty() },
+            p.getOrNull(17)?.trim()?.toLongOrNull(),
+            p.getOrNull(18)?.trim()?.toLongOrNull()
         )
     }
 

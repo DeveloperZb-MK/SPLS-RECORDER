@@ -22,6 +22,7 @@ import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import kotlin.math.abs
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -45,7 +46,8 @@ class SplsRecorderService : Service() {
     private var fused: FusedLocationProviderClient? = null
 
     private var nmeaMsl = Double.NaN
-    private var nmeaAt = 0L
+    private var nmeaFixTimestampMs = 0L
+    private var nmeaReceivedAtElapsedMs = 0L
     private var cachedLoc: SplsLocation? = null
     private var cachedAt = 0L
     private val lastAt = HashMap<String, Long>()
@@ -71,7 +73,7 @@ class SplsRecorderService : Service() {
         }
     }
 
-    private val nmeaListener = OnNmeaMessageListener { message, _ -> parseNmea(message) }
+    private val nmeaListener = OnNmeaMessageListener { message, timestamp -> parseNmea(message, timestamp) }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -156,16 +158,26 @@ class SplsRecorderService : Service() {
         }
     }
 
-    private fun parseNmea(message: String) {
-        // $xxGGA,time,lat,N,lon,E,quality,satellites,hdop,altitude(MSL),M,geoid,M,...
-        if (message.length < 8 || message.substring(3, 6) != "GGA") return
-        val f = message.split(',')
-        if (f.size < 10) return
-        val quality = f[6].toIntOrNull() ?: return
-        if (quality <= 0) return
-        val msl = f[9].toDoubleOrNull() ?: return
+    private fun parseNmea(message: String, fixTimestampMs: Long) {
+        // Accept only a complete, checksum-valid GGA sentence with a valid MSL altitude.
+        val sentence = message.trim()
+        if (!sentence.startsWith("$") || sentence.length < 12 || fixTimestampMs <= 0L) return
+        val star = sentence.lastIndexOf('*')
+        if (star <= 1 || star + 3 != sentence.length) return
+        val expectedChecksum = sentence.substring(star + 1).toIntOrNull(16) ?: return
+        var actualChecksum = 0
+        for (i in 1 until star) actualChecksum = actualChecksum xor sentence[i].code
+        if (actualChecksum != expectedChecksum) return
+
+        val fields = sentence.substring(1, star).split(',')
+        if (fields.size < 11 || fields[0].length != 5 || !fields[0].endsWith("GGA")) return
+        val quality = fields[6].toIntOrNull() ?: return
+        if (quality <= 0 || fields[9].isBlank() || fields[10] != "M") return
+        val msl = fields[9].toDoubleOrNull()?.takeIf { it.isFinite() } ?: return
+
         nmeaMsl = msl
-        nmeaAt = SystemClock.elapsedRealtime()
+        nmeaFixTimestampMs = fixTimestampMs
+        nmeaReceivedAtElapsedMs = SystemClock.elapsedRealtime()
     }
 
     @Suppress("DEPRECATION")
@@ -341,11 +353,28 @@ class SplsRecorderService : Service() {
             loc.verticalAccuracyMeters.toDouble()
         } else null
         val alt = if (loc.hasAltitude()) loc.altitude else null
-        val msl: Double? = when {
-            Build.VERSION.SDK_INT >= 34 && loc.hasMslAltitude() -> loc.mslAltitudeMeters
-            !nmeaMsl.isNaN() && now - nmeaAt < 30_000L -> nmeaMsl
+        // Prefer Android's native MSL field. Below API 34, use the GGA value only
+        // when it belongs to this GPS fix; Network/Fused may borrow a recently received GNSS value.
+        val nativeMsl = if (Build.VERSION.SDK_INT >= 34 && loc.hasMslAltitude()) loc.mslAltitudeMeters else null
+        val nmeaAgeMs = if (provider == "gps" && loc.time > 0L && nmeaFixTimestampMs > 0L) {
+            abs(loc.time - nmeaFixTimestampMs)
+        } else null
+        val nmeaFresh = nmeaReceivedAtElapsedMs > 0L &&
+            now - nmeaReceivedAtElapsedMs in 0L..NMEA_MATCH_MAX_AGE_MS
+        val matchedNmeaMsl = when {
+            nmeaMsl.isNaN() -> null
+            provider == "gps" && nmeaAgeMs != null && nmeaAgeMs <= NMEA_MATCH_MAX_AGE_MS -> nmeaMsl
+            provider != "gps" && nmeaFresh -> nmeaMsl
             else -> null
         }
+        val msl = nativeMsl ?: matchedNmeaMsl
+        val mslSource = when {
+            nativeMsl != null -> "native"
+            matchedNmeaMsl != null -> "nmea"
+            else -> null
+        }
+        val matchedNmeaTimestamp = if (mslSource == "nmea") nmeaFixTimestampMs else null
+        val matchedNmeaAge = if (mslSource == "nmea") nmeaAgeMs else null
         val speed = if (loc.hasSpeed()) loc.speed.toDouble() else null
         val bearing = if (loc.hasBearing()) loc.bearing.toDouble() else null
         val bearingAcc = if (Build.VERSION.SDK_INT >= 26 && loc.hasBearingAccuracy()) {
@@ -372,7 +401,8 @@ class SplsRecorderService : Service() {
             applicationContext, target.id,
             SplsRow(
                 System.currentTimeMillis(), provider, loc.latitude, loc.longitude,
-                gpsH, networkH, fusedH, vAcc, alt, msl, speed, bearing, bearingAcc, jitter, drift
+                gpsH, networkH, fusedH, vAcc, alt, msl, speed, bearing, bearingAcc, jitter, drift,
+                mslSource, matchedNmeaTimestamp, matchedNmeaAge
             )
         )
     }
@@ -408,6 +438,7 @@ class SplsRecorderService : Service() {
         private const val EXIT_CONFIRM_MS = 6_000L
         private const val ENTER_CONFIRM_MS = 4_000L
         private const val FIX_GAP_RESET_MS = 30_000L
+        private const val NMEA_MATCH_MAX_AGE_MS = 30_000L
 
         fun start(ctx: Context) {
             ContextCompat.startForegroundService(ctx, Intent(ctx, SplsRecorderService::class.java))
