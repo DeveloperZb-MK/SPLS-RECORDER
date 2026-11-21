@@ -44,14 +44,12 @@ class SplsRecorderService : Service() {
     private var lm: LocationManager? = null
     private var fused: FusedLocationProviderClient? = null
 
-    private var lastNetAcc = Double.NaN
-    private var lastNetAt = 0L
     private var nmeaMsl = Double.NaN
     private var nmeaAt = 0L
     private var cachedLoc: SplsLocation? = null
     private var cachedAt = 0L
     private val lastAt = HashMap<String, Long>()
-    private val lastSig = HashMap<String, String>()
+    private val lastFixId = HashMap<String, Long>()
 
     // jitter and drift: the previous fix and the last few fixes of each provider
     private class Pos(val lat: Double, val lon: Double, val at: Long)
@@ -94,7 +92,9 @@ class SplsRecorderService : Service() {
 
     private fun startAsForeground() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.createNotificationChannel(NotificationChannel(CHANNEL, "SPLS recording", NotificationManager.IMPORTANCE_LOW))
+        if (Build.VERSION.SDK_INT >= 26) {
+            nm.createNotificationChannel(NotificationChannel(CHANNEL, "SPLS recording", NotificationManager.IMPORTANCE_LOW))
+        }
         val n: Notification = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_spls_notif)
             .setContentTitle("SPLS Recorder is recording")
@@ -319,37 +319,40 @@ class SplsRecorderService : Service() {
     private fun recordFix(loc: Location, provider: String, target: SplsLocation, now: Long) {
         if (!SplsProviders.isRecording(provider)) return
         if (SplsProviders.limitReached(provider, SplsStore.providerCount(applicationContext, target.id, provider))) return
-        val h = loc.accuracy.toDouble()
-        if (h <= 0.0) return
 
-        val netAcc: Double
-        if (provider == "network") {
-            lastNetAcc = h
-            lastNetAt = now
-            netAcc = h
-        } else {
-            if (lastNetAcc.isNaN() || now - lastNetAt > 120_000L) return
-            netAcc = lastNetAcc
-        }
+        // Keep the accuracy measurement from this provider's own Location object only.
+        // GPS and Fused rows never inherit a cached Network accuracy.
+        if (!loc.hasAccuracy()) return
+        val h = loc.accuracy.toDouble()
+        if (!h.isFinite() || h <= 0.0) return
+        val gpsH = if (provider == "gps") h else null
+        val networkH = if (provider == "network") h else null
+        val fusedH = if (provider == "fused") h else null
 
         val last = lastAt[provider] ?: 0L
         if (now - last < 3000L) return
+        val fixId = loc.elapsedRealtimeNanos
+        if (lastFixId[provider] == fixId) return
+        lastFixId[provider] = fixId
 
-        val vAcc = if (loc.hasVerticalAccuracy()) loc.verticalAccuracyMeters.toDouble() else null
+        // These two optional measurements were introduced in API 26. On Android 7,
+        // leave their CSV cells empty rather than reading unavailable APIs.
+        val vAcc = if (Build.VERSION.SDK_INT >= 26 && loc.hasVerticalAccuracy()) {
+            loc.verticalAccuracyMeters.toDouble()
+        } else null
         val alt = if (loc.hasAltitude()) loc.altitude else null
         val msl: Double? = when {
             Build.VERSION.SDK_INT >= 34 && loc.hasMslAltitude() -> loc.mslAltitudeMeters
             !nmeaMsl.isNaN() && now - nmeaAt < 30_000L -> nmeaMsl
             else -> null
         }
-        val speed = if (loc.hasSpeed()) loc.speed.toDouble() else 0.0
-        val sig = "$h|$vAcc|$alt|$speed"
-        if (sig == lastSig[provider] && now - last < 30_000L) return
-        lastSig[provider] = sig
-        lastAt[provider] = now
-
+        val speed = if (loc.hasSpeed()) loc.speed.toDouble() else null
         val bearing = if (loc.hasBearing()) loc.bearing.toDouble() else null
-        val bearingAcc = if (loc.hasBearingAccuracy()) loc.bearingAccuracyDegrees.toDouble() else null
+        val bearingAcc = if (Build.VERSION.SDK_INT >= 26 && loc.hasBearingAccuracy()) {
+            loc.bearingAccuracyDegrees.toDouble()
+        } else null
+
+        lastAt[provider] = now
         val prev = lastPos[provider]
         val gapOk = prev != null && now - prev.at < 60_000L
         val jitter = if (gapOk) SplsGeo.distanceM(prev!!.lat, prev.lon, loc.latitude, loc.longitude) else null
@@ -367,7 +370,10 @@ class SplsRecorderService : Service() {
 
         SplsStore.append(
             applicationContext, target.id,
-            SplsRow(System.currentTimeMillis(), provider, loc.latitude, loc.longitude, h, netAcc, vAcc, alt, msl, speed, bearing, bearingAcc, jitter, drift)
+            SplsRow(
+                System.currentTimeMillis(), provider, loc.latitude, loc.longitude,
+                gpsH, networkH, fusedH, vAcc, alt, msl, speed, bearing, bearingAcc, jitter, drift
+            )
         )
     }
 
