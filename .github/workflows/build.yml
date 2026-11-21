@@ -71,6 +71,9 @@ jobs:
           touch local.properties
           chmod +x ./gradlew
 
+      - name: Run SPLS unit tests
+        run: ./gradlew testFossDebugUnitTest --stacktrace
+
       # FOSS debug build: always debug-signed; no release keystore is read or used.
       - name: Build FOSS debug APK
         run: ./gradlew assembleFossDebug --stacktrace
